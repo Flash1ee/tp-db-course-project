@@ -7,7 +7,7 @@ import (
 )
 
 type CustomRouter struct {
-	*httprouter.Router
+	router *httprouter.Router
 }
 
 func NewRouter() *CustomRouter {
@@ -20,8 +20,11 @@ func wrapHandler(h http.Handler) httprouter.Handle {
 	}
 }
 func (r *CustomRouter) Get(path string, handler http.Handler) {
-	r.GET(path, wrapHandler(handler))
+	r.router.GET(path, wrapHandler(handler))
 }
 func (r *CustomRouter) Post(path string, handler http.Handler) {
-	r.POST(path, wrapHandler(handler))
+	r.router.POST(path, wrapHandler(handler))
+}
+func (r *CustomRouter) HandleFunc(url string, f func(http.ResponseWriter, *http.Request), method string) {
+	r.router.HandlerFunc(method, url, f)
 }
