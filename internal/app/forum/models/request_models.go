@@ -5,3 +5,10 @@ type RequestCreateForum struct {
 	User  string `json:"user"`
 	Slug  string `json:"slug"`
 }
+
+type RequestCreateThread struct {
+	Title   string `json:"title"`
+	Author  string `json:"author"`
+	Message string `json:"message"`
+	Created string `json:"created"`
+}
