@@ -1,6 +1,7 @@
 package models
 
 import (
+	models_forum "tp-db-project/internal/app/forum/models"
 	models_thread "tp-db-project/internal/app/thread/models"
 	models_author "tp-db-project/internal/app/users/models"
 )
@@ -19,4 +20,5 @@ type ResponsePostDetail struct {
 	Post   ResponsePost                 `json:"post"`
 	Author models_author.ResponseUser   `json:"author,omitempty"`
 	Thread models_thread.ResponseThread `json:"thread,omitempty"`
+	Forum  models_forum.ResponseForum   `json:"forum,omitempty"`
 }

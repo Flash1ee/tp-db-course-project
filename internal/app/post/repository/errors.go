@@ -7,6 +7,7 @@ import (
 
 var (
 	DefaultErrDB = errors.New("something wrong DB")
+	NotFound     = errors.New("Not found")
 )
 
 func NewDBError(externalErr error) *app.GeneralError {
