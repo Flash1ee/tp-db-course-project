@@ -35,7 +35,7 @@ func NewForumRepository(conn *sql.DB) *ForumRepository {
 }
 
 func (r *ForumRepository) Create(req *models.RequestCreateForum) error {
-	_, err := r.conn.Exec(queryCreate, req.Title, req.User, req.Slug)
+	_, err := r.conn.Exec(queryCreate, &req.Title, &req.User, &req.Slug)
 	return err
 }
 func (r *ForumRepository) GetForumBySlag(slag string) (*models.Forum, error) {
@@ -50,6 +50,9 @@ func (r *ForumRepository) GetForumBySlag(slag string) (*models.Forum, error) {
 }
 func (r *ForumRepository) CreateForumThread(forumName string, req *models.RequestCreateThread) error {
 	var err error
+	if req == nil {
+		return ArgError
+	}
 	if req.Created == "" {
 		_, err = r.conn.Exec(queryCreateForumThreadNoTime, req.Title, req.Author, forumName, req.Message)
 	} else {

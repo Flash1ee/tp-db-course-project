@@ -34,7 +34,8 @@ func (r *UsersRepository) Create(user *models.User) error {
 
 func (r *UsersRepository) Get(nickname string) (*models.User, error) {
 	user := &models.User{}
-	err := r.conn.QueryRow(queryGetUser, nickname).Scan(user.Nickname, user.FullName, user.About, user.Email)
+	err := r.conn.QueryRow(queryGetUser, nickname).
+		Scan(&user.Nickname, &user.FullName, &user.About, &user.Email)
 	if err != nil {
 		return nil, err
 	}

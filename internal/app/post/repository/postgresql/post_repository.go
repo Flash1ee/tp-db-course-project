@@ -41,8 +41,8 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 	switch related {
 	case "":
 		if err = r.conn.QueryRow(queryGetPost, id).
-			Scan(res.Post.Id, res.Post.Parent, res.Post.Author, res.Post.Message,
-				res.Post.IsEdited, res.Post.Forum, res.Post.Thread, postTime); err != nil {
+			Scan(&res.Post.Id, &res.Post.Parent, &res.Post.Author, &res.Post.Message,
+				&res.Post.IsEdited, &res.Post.Forum, &res.Post.Thread, postTime); err != nil {
 			if err == sql.ErrNoRows {
 				return nil, post_repository.NotFound
 			}
@@ -53,9 +53,9 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 
 	case "user":
 		if err = r.conn.QueryRow(queryGetPostAuthor, id).
-			Scan(res.Post.Id, res.Post.Parent, res.Post.Author, res.Post.Message,
-				res.Post.IsEdited, res.Post.Forum, res.Post.Thread, postTime,
-				res.Author.Nickname, res.Author.FullName, res.Author.About, res.Author.Email); err != nil {
+			Scan(&res.Post.Id, &res.Post.Parent, &res.Post.Author, &res.Post.Message,
+				&res.Post.IsEdited, &res.Post.Forum, &res.Post.Thread, postTime,
+				&res.Author.Nickname, &res.Author.FullName, &res.Author.About, &res.Author.Email); err != nil {
 			if err == sql.ErrNoRows {
 				return nil, post_repository.NotFound
 			}
@@ -67,10 +67,10 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 	case "thread":
 		threadTime := &time.Time{}
 		if err = r.conn.QueryRow(queryGetPostThread, id).
-			Scan(res.Post.Id, res.Post.Parent, res.Post.Author, res.Post.Message,
-				res.Post.IsEdited, res.Post.Forum, res.Post.Thread, postTime,
-				res.Thread.Id, res.Thread.Title, res.Thread.Author, res.Thread.Forum,
-				res.Thread.Message, res.Thread.Votes, res.Thread.Slug, threadTime); err != nil {
+			Scan(&res.Post.Id, &res.Post.Parent, &res.Post.Author, &res.Post.Message,
+				&res.Post.IsEdited, &res.Post.Forum, &res.Post.Thread, postTime,
+				&res.Thread.Id, &res.Thread.Title, &res.Thread.Author, &res.Thread.Forum,
+				&res.Thread.Message, &res.Thread.Votes, &res.Thread.Slug, threadTime); err != nil {
 			if err == sql.ErrNoRows {
 				return nil, post_repository.NotFound
 			}
@@ -82,10 +82,10 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 
 	case "forum":
 		if err = r.conn.QueryRow(queryGetPostForum, id).
-			Scan(res.Post.Id, res.Post.Parent, res.Post.Author, res.Post.Message,
-				res.Post.IsEdited, res.Post.Forum, res.Post.Thread, postTime,
-				res.Forum.Title, res.Forum.User, res.Forum.Slug, res.Forum.Posts,
-				res.Forum.Threads); err != nil {
+			Scan(&res.Post.Id, &res.Post.Parent, &res.Post.Author, &res.Post.Message,
+				&res.Post.IsEdited, &res.Post.Forum, &res.Post.Thread, postTime,
+				&res.Forum.Title, &res.Forum.User, &res.Forum.Slug, &res.Forum.Posts,
+				&res.Forum.Threads); err != nil {
 			if err == sql.ErrNoRows {
 				return nil, post_repository.NotFound
 			}
@@ -105,8 +105,8 @@ func (r *PostRepository) Update(id int64, req *models.RequestCreateMessage) (*mo
 
 	postTime := &time.Time{}
 	if err := r.conn.QueryRow(queryUpdatePost, id, req.Message).
-		Scan(post.Id, post.Parent, post.Author, post.Message,
-			post.IsEdited, post.Forum, post.Thread, postTime); err != nil {
+		Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
+			&post.IsEdited, &post.Forum, &post.Thread, postTime); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, post_repository.NotFound
 		}
