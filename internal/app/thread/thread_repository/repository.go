@@ -1,4 +1,4 @@
-package repository
+package thread_repository
 
 import "tp-db-project/internal/app/thread/models"
 
@@ -7,4 +7,6 @@ import "tp-db-project/internal/app/thread/models"
 type Repository interface {
 	GetByID(id int64) (*models.ResponseThread, error)
 	GetBySlug(slug string) (*models.ResponseThread, error)
+	UpdateByID(id int64, req *models.RequestUpdateThread) (*models.ResponseThread, error)
+	UpdateBySlug(slug string, req *models.RequestUpdateThread) (*models.ResponseThread, error)
 }
