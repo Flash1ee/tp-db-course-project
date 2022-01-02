@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS thread
     forum   citext                NOT NULL REFERENCES forum (slug),
     message text                  NOT NULL,
     votes   integer                  DEFAULT 0,
-    slug    citext,
+    slug    citext UNIQUE,
     created timestamp with time zone DEFAULT now()
 );
 

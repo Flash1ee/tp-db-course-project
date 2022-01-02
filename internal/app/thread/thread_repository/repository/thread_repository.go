@@ -2,8 +2,11 @@ package thread_repository
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/go-openapi/strfmt"
 	"time"
+	pag_models "tp-db-project/internal/app/models"
+	post_models "tp-db-project/internal/app/post/models"
 	"tp-db-project/internal/app/thread/models"
 	"tp-db-project/internal/app/thread/thread_repository"
 )
@@ -18,6 +21,10 @@ const (
 		"WHERE id = $1 RETURNING id, title, author, forum, message, votes, slug, created;"
 	queryUpdateThreadBySlug = "UPDATE thread SET title = $2, message = $3 " +
 		"WHERE slug = $1 RETURNING id, title, author, forum, message, votes, slug, created;"
+
+	queryInsertPost = "INSERT INTO post(parent, author, message, forum, thread, created) VALUES "
+	queryGetPosts   = "SELECT id, parent, author, message, is_edited, forum, thread, created " +
+		"FROM post WHERE thread = $1 "
 )
 
 type ThreadRepository struct {
@@ -32,7 +39,6 @@ func NewThreadRepository(conn *sql.DB) *ThreadRepository {
 
 func (r *ThreadRepository) GetByID(id int64) (*models.ResponseThread, error) {
 	res := &models.ResponseThread{}
-
 	if err := r.conn.QueryRow(queryGetThreadById, id).
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
 			&res.Message, &res.Votes, &res.Slug, &res.Created); err != nil {
@@ -87,4 +93,115 @@ func (r *ThreadRepository) UpdateBySlug(slug string, req *models.RequestUpdateTh
 	res.Created = strfmt.DateTime(threadTime.UTC()).String()
 
 	return res, nil
+}
+
+func (r *ThreadRepository) CreatePosts(forum string, thread int64, posts []*models.RequestNewPost) ([]post_models.ResponsePost, error) {
+	query := queryInsertPost
+
+	newPosts := make([]post_models.ResponsePost, 0, len(posts))
+	var queryArgs []interface{}
+	insertTime := strfmt.DateTime(time.Now())
+	for i, post := range posts {
+		newPosts[i].Parent = post.Parent
+		newPosts[i].Author = post.Author
+		newPosts[i].Message = post.Message
+		newPosts[i].Forum = forum
+		newPosts[i].Thread = thread
+		newPosts[i].Created = insertTime.String()
+
+		query += fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d),",
+			i*6+1, i*6+2, i*6+3, i*6+4, i*6+5, i*6+6)
+
+		queryArgs = append(queryArgs, post.Parent, post.Author, post.Message, forum, thread, insertTime)
+	}
+	query = query[:len(query)-1]
+	query += " RETURNING id;"
+
+	rows, err := r.conn.Query(query, queryArgs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for id := 0; rows.Next(); id++ {
+		if err = rows.Scan(&newPosts[id].Id); err != nil {
+			return nil, err
+		}
+	}
+
+	return newPosts, nil
+}
+func CreateQueryGetPosts(sort string, since string, desc bool, pag *pag_models.Pagination) (string, error) {
+	query := queryGetPosts
+	orderBy := "ORDER BY created "
+	querySince := "AND id > $2"
+	limit := pag.Limit
+
+	switch sort {
+	case "":
+		fallthrough
+	case "flat":
+		if desc {
+			orderBy += "DESC"
+		}
+		if limit > 0 {
+			orderBy += fmt.Sprintf("LIMIT %d", pag.Limit)
+		}
+
+		if since != "" {
+			query = query + querySince + orderBy
+
+		} else {
+			query = query + orderBy
+		}
+		return query, nil
+	case "tree":
+	case "parent_tree":
+	default:
+		return "", thread_repository.SortArgError
+
+	}
+	return query, nil
+}
+func (r *ThreadRepository) GetPostsById(threadId int64, sort string, since string, desc bool, pag *pag_models.Pagination) ([]post_models.ResponsePost, error) {
+	//orderBy := "ORDER BY created "
+	//querySince := "AND id > $2"
+	//query := queryGetPosts
+	//limit := pag.Limit
+
+	var rows *sql.Rows
+	var err error
+	query, _ := CreateQueryGetPosts(sort, since, desc, pag)
+	//if desc {
+	//	orderBy += "DESC"
+	//}
+	//
+	//if limit > 0 {
+	//	orderBy += fmt.Sprintf("LIMIT %d", pag.Limit)
+	//}
+
+	if since != "" {
+		//query = query + querySince + orderBy
+		rows, err = r.conn.Query(query, threadId, since)
+	} else {
+		//query = query + orderBy
+		rows, err = r.conn.Query(query, threadId)
+	}
+
+	defer rows.Close()
+
+	posts := make([]post_models.ResponsePost, 0)
+	for rows.Next() {
+		postTime := &time.Time{}
+		post := &post_models.ResponsePost{}
+		if err = rows.Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
+			&post.IsEdited, &post.Forum, &post.Thread, postTime); err != nil {
+			return nil, err
+		}
+		post.Created = strfmt.DateTime(postTime.UTC()).String()
+
+		posts = append(posts, *post)
+	}
+	return posts, nil
+
 }
