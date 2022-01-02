@@ -52,6 +52,40 @@ CREATE TABLE IF NOT EXISTS vote
 
 CREATE TABLE IF NOT EXISTS user_forum
 (
-    nickname citext NOT NULL UNIQUE REFERENCES  users (nickname),
+    nickname citext NOT NULL UNIQUE REFERENCES users (nickname),
     forum    citext NOT NULL UNIQUE REFERENCES forum (slug)
 );
+
+CREATE FUNCTION insert_votes_into_threads()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    UPDATE thread
+    SET votes = votes + NEW.voice
+    WHERE id = NEW.thread_id;
+    RETURN NEW;
+END;
+$$ language plpgsql;
+
+CREATE TRIGGER insert_votes
+    AFTER INSERT
+    ON vote
+    FOR EACH ROW
+EXECUTE PROCEDURE insert_votes_into_threads();
+
+CREATE FUNCTION update_votes_in_threads()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    UPDATE thread
+    SET votes = votes + NEW.voice - OLD.voice
+    WHERE id = NEW.thread_id;
+    RETURN NEW;
+END;
+$$ language plpgsql;
+
+CREATE TRIGGER update_votes
+    AFTER UPDATE
+    ON vote
+    FOR EACH ROW
+EXECUTE PROCEDURE update_votes_in_threads();
