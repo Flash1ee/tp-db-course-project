@@ -60,7 +60,6 @@ func (h *UsersHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request)
 		h.UsecaseError(w, r, err, CodeByErrorGet)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 	h.Respond(w, r, http.StatusOK, *user)
 }
 
@@ -77,7 +76,6 @@ func (h *UsersHandler) GetProfileHandler(w http.ResponseWriter, r *http.Request)
 		h.UsecaseError(w, r, err, CodeByErrorGet)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 	h.Respond(w, r, http.StatusOK, *user)
 }
 func (h *UsersHandler) UpdateProfileHandler(w http.ResponseWriter, r *http.Request) {
@@ -99,6 +97,5 @@ func (h *UsersHandler) UpdateProfileHandler(w http.ResponseWriter, r *http.Reque
 		h.UsecaseError(w, r, err, CodeByErrorPost)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 	h.Respond(w, r, http.StatusOK, *user)
 }

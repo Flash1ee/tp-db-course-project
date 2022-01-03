@@ -1,4 +1,4 @@
-package repository
+package service
 
 import "tp-db-project/internal/app/service/models"
 
@@ -6,5 +6,5 @@ import "tp-db-project/internal/app/service/models"
 
 type Repository interface {
 	Delete() error
-	Status() (models.ResponseService, error)
+	Status() (*models.ResponseService, error)
 }
