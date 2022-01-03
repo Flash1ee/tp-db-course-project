@@ -1,9 +1,11 @@
 package thread_repository
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"github.com/go-openapi/strfmt"
+	"github.com/jackc/pgx/v4"
 	"time"
 	pag_models "tp-db-project/internal/app/models"
 	post_models "tp-db-project/internal/app/post/models"
@@ -28,10 +30,10 @@ const (
 )
 
 type ThreadRepository struct {
-	conn *sql.DB
+	conn *pgx.Conn
 }
 
-func NewThreadRepository(conn *sql.DB) *ThreadRepository {
+func NewThreadRepository(conn *pgx.Conn) *ThreadRepository {
 	return &ThreadRepository{
 		conn: conn,
 	}
@@ -39,7 +41,7 @@ func NewThreadRepository(conn *sql.DB) *ThreadRepository {
 
 func (r *ThreadRepository) GetByID(id int64) (*models.ResponseThread, error) {
 	res := &models.ResponseThread{}
-	if err := r.conn.QueryRow(queryGetThreadById, id).
+	if err := r.conn.QueryRow(context.Background(), queryGetThreadById, id).
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
 			&res.Message, &res.Votes, &res.Slug, &res.Created); err != nil {
 		if err == sql.ErrNoRows {
@@ -54,7 +56,7 @@ func (r *ThreadRepository) GetByID(id int64) (*models.ResponseThread, error) {
 func (r *ThreadRepository) GetBySlug(slug string) (*models.ResponseThread, error) {
 	res := &models.ResponseThread{}
 
-	if err := r.conn.QueryRow(queryGetThreadBySlug, slug).
+	if err := r.conn.QueryRow(context.Background(), queryGetThreadBySlug, slug).
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
 			&res.Message, &res.Votes, &res.Slug, &res.Created); err != nil {
 		if err == sql.ErrNoRows {
@@ -70,7 +72,7 @@ func (r *ThreadRepository) GetBySlug(slug string) (*models.ResponseThread, error
 func (r *ThreadRepository) UpdateByID(id int64, req *models.RequestUpdateThread) (*models.ResponseThread, error) {
 	res := &models.ResponseThread{}
 	threadTime := &time.Time{}
-	if err := r.conn.QueryRow(queryUpdateThreadById, id, req.Title, req.Message).
+	if err := r.conn.QueryRow(context.Background(), queryUpdateThreadById, id, req.Title, req.Message).
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
 			&res.Message, &res.Votes, &res.Slug, threadTime); err != nil {
 		return nil, err
@@ -84,7 +86,7 @@ func (r *ThreadRepository) UpdateByID(id int64, req *models.RequestUpdateThread)
 func (r *ThreadRepository) UpdateBySlug(slug string, req *models.RequestUpdateThread) (*models.ResponseThread, error) {
 	res := &models.ResponseThread{}
 	threadTime := &time.Time{}
-	if err := r.conn.QueryRow(queryUpdateThreadBySlug, slug, req.Title, req.Message).
+	if err := r.conn.QueryRow(context.Background(), queryUpdateThreadBySlug, slug, req.Title, req.Message).
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
 			&res.Message, &res.Votes, &res.Slug, threadTime); err != nil {
 		return nil, err
@@ -117,7 +119,7 @@ func (r *ThreadRepository) CreatePosts(forum string, thread int64, posts []*mode
 	query = query[:len(query)-1]
 	query += " RETURNING id;"
 
-	rows, err := r.conn.Query(query, queryArgs)
+	rows, err := r.conn.Query(context.Background(), query, queryArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +171,7 @@ func (r *ThreadRepository) GetPostsById(threadId int64, sort string, since strin
 	//query := queryGetPosts
 	//limit := pag.Limit
 
-	var rows *sql.Rows
+	var rows pgx.Rows
 	var err error
 	query, _ := CreateQueryGetPosts(sort, since, desc, pag)
 	//if desc {
@@ -182,10 +184,10 @@ func (r *ThreadRepository) GetPostsById(threadId int64, sort string, since strin
 
 	if since != "" {
 		//query = query + querySince + orderBy
-		rows, err = r.conn.Query(query, threadId, since)
+		rows, err = r.conn.Query(context.Background(), query, threadId, since)
 	} else {
 		//query = query + orderBy
-		rows, err = r.conn.Query(query, threadId)
+		rows, err = r.conn.Query(context.Background(), query, threadId)
 	}
 
 	defer rows.Close()

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -28,7 +29,7 @@ func NewServer(config *configs.Config, connections utilits.ExpectedConnections, 
 	}
 }
 func (s *Server) checkConnection() error {
-	if err := s.connections.SqlConnection.Ping(); err != nil {
+	if err := s.connections.SqlConnection.Ping(context.Background()); err != nil {
 		return fmt.Errorf("Can't check connection to sql with error %v ", err)
 	}
 	s.logger.Info("Success check connection to sql db")

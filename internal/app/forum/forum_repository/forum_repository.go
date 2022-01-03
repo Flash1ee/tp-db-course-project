@@ -1,8 +1,9 @@
 package forum_repository
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
+	"github.com/jackc/pgx/v4"
 	"time"
 	"tp-db-project/internal/app/forum/models"
 	models_utilits "tp-db-project/internal/app/models"
@@ -25,23 +26,23 @@ const (
 )
 
 type ForumRepository struct {
-	conn *sql.DB
+	conn *pgx.Conn
 }
 
-func NewForumRepository(conn *sql.DB) *ForumRepository {
+func NewForumRepository(conn *pgx.Conn) *ForumRepository {
 	return &ForumRepository{
 		conn: conn,
 	}
 }
 
 func (r *ForumRepository) Create(req *models.RequestCreateForum) error {
-	_, err := r.conn.Exec(queryCreate, &req.Title, &req.User, &req.Slug)
+	_, err := r.conn.Exec(context.Background(), queryCreate, &req.Title, &req.User, &req.Slug)
 	return err
 }
 func (r *ForumRepository) GetForumBySlag(slag string) (*models.Forum, error) {
 	forum := &models.Forum{}
 
-	res := r.conn.QueryRow(queryGetForumBySlug, slag).
+	res := r.conn.QueryRow(context.Background(), queryGetForumBySlug, slag).
 		Scan(&forum.Title, &forum.UsersNickname, &forum.Slug, &forum.Posts, &forum.Threads)
 	if res != nil {
 		return nil, res
@@ -54,9 +55,9 @@ func (r *ForumRepository) CreateForumThread(forumName string, req *models.Reques
 		return ArgError
 	}
 	if req.Created == "" {
-		_, err = r.conn.Exec(queryCreateForumThreadNoTime, req.Title, req.Author, forumName, req.Message)
+		_, err = r.conn.Exec(context.Background(), queryCreateForumThreadNoTime, req.Title, req.Author, forumName, req.Message)
 	} else {
-		_, err = r.conn.Exec(queryCreateForumThreadWithTime, req.Title, req.Author, forumName, req.Message, req.Created)
+		_, err = r.conn.Exec(context.Background(), queryCreateForumThreadWithTime, req.Title, req.Author, forumName, req.Message, req.Created)
 	}
 
 	return err
@@ -66,7 +67,7 @@ func (r *ForumRepository) GetForumUsers(slug string, since string, desc bool, pa
 	querySince := "AND u.nickname > $2"
 	query := queryGetForumUsers
 	limit := pag.Limit
-	var rows *sql.Rows
+	var rows pgx.Rows
 	var err error
 
 	if desc {
@@ -77,10 +78,10 @@ func (r *ForumRepository) GetForumUsers(slug string, since string, desc bool, pa
 	}
 	if since != "" {
 		query = query + querySince + orderBy
-		rows, err = r.conn.Query(query, slug, since)
+		rows, err = r.conn.Query(context.Background(), query, slug, since)
 	} else {
 		query = query + orderBy
-		rows, err = r.conn.Query(query, slug)
+		rows, err = r.conn.Query(context.Background(), query, slug)
 	}
 	if err != nil {
 		return nil, err
@@ -104,7 +105,7 @@ func (r *ForumRepository) GetForumThreads(slug string, since string, desc bool, 
 	query := queryGetForumThreads
 	limit := pag.Limit
 
-	var rows *sql.Rows
+	var rows pgx.Rows
 	var err error
 
 	if desc {
@@ -115,10 +116,10 @@ func (r *ForumRepository) GetForumThreads(slug string, since string, desc bool, 
 	}
 	if since != "" {
 		query = query + querySince + orderBy
-		rows, err = r.conn.Query(query, slug, since)
+		rows, err = r.conn.Query(context.Background(), query, slug, since)
 	} else {
 		query = query + orderBy
-		rows, err = r.conn.Query(query, slug)
+		rows, err = r.conn.Query(context.Background(), query, slug)
 	}
 	if err != nil {
 		return nil, err

@@ -1,8 +1,10 @@
 package post_postgresql
 
 import (
+	"context"
 	"database/sql"
 	"github.com/go-openapi/strfmt"
+	"github.com/jackc/pgx/v4"
 	"time"
 	"tp-db-project/internal/app/post/models"
 	post_repository "tp-db-project/internal/app/post/repository"
@@ -24,10 +26,10 @@ const (
 )
 
 type PostRepository struct {
-	conn *sql.DB
+	conn *pgx.Conn
 }
 
-func NewPostRepository(conn *sql.DB) *PostRepository {
+func NewPostRepository(conn *pgx.Conn) *PostRepository {
 	return &PostRepository{
 		conn: conn,
 	}
@@ -40,7 +42,7 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 	postTime := &time.Time{}
 	switch related {
 	case "":
-		if err = r.conn.QueryRow(queryGetPost, id).
+		if err = r.conn.QueryRow(context.Background(), queryGetPost, id).
 			Scan(&res.Post.Id, &res.Post.Parent, &res.Post.Author, &res.Post.Message,
 				&res.Post.IsEdited, &res.Post.Forum, &res.Post.Thread, postTime); err != nil {
 			if err == sql.ErrNoRows {
@@ -52,7 +54,7 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 		res.Post.Created = strfmt.DateTime(postTime.UTC()).String()
 
 	case "user":
-		if err = r.conn.QueryRow(queryGetPostAuthor, id).
+		if err = r.conn.QueryRow(context.Background(), queryGetPostAuthor, id).
 			Scan(&res.Post.Id, &res.Post.Parent, &res.Post.Author, &res.Post.Message,
 				&res.Post.IsEdited, &res.Post.Forum, &res.Post.Thread, postTime,
 				&res.Author.Nickname, &res.Author.FullName, &res.Author.About, &res.Author.Email); err != nil {
@@ -66,7 +68,7 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 
 	case "thread":
 		threadTime := &time.Time{}
-		if err = r.conn.QueryRow(queryGetPostThread, id).
+		if err = r.conn.QueryRow(context.Background(), queryGetPostThread, id).
 			Scan(&res.Post.Id, &res.Post.Parent, &res.Post.Author, &res.Post.Message,
 				&res.Post.IsEdited, &res.Post.Forum, &res.Post.Thread, postTime,
 				&res.Thread.Id, &res.Thread.Title, &res.Thread.Author, &res.Thread.Forum,
@@ -81,7 +83,7 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 		res.Thread.Created = strfmt.DateTime(threadTime.UTC()).String()
 
 	case "forum":
-		if err = r.conn.QueryRow(queryGetPostForum, id).
+		if err = r.conn.QueryRow(context.Background(), queryGetPostForum, id).
 			Scan(&res.Post.Id, &res.Post.Parent, &res.Post.Author, &res.Post.Message,
 				&res.Post.IsEdited, &res.Post.Forum, &res.Post.Thread, postTime,
 				&res.Forum.Title, &res.Forum.User, &res.Forum.Slug, &res.Forum.Posts,
@@ -104,7 +106,7 @@ func (r *PostRepository) Update(id int64, req *models.RequestCreateMessage) (*mo
 	var post *models.ResponsePost
 
 	postTime := &time.Time{}
-	if err := r.conn.QueryRow(queryUpdatePost, id, req.Message).
+	if err := r.conn.QueryRow(context.Background(), queryUpdatePost, id, req.Message).
 		Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
 			&post.IsEdited, &post.Forum, &post.Thread, postTime); err != nil {
 		if err == sql.ErrNoRows {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"github.com/BurntSushi/toml"
 	"github.com/sirupsen/logrus"
@@ -33,8 +34,8 @@ func main() {
 
 	db, closeDbResource := utilits.NewPostgresConnection(&config.ServerRepository)
 
-	defer func(closer func() error, log *logrus.Logger) {
-		err := closer()
+	defer func(closer func(ctx context.Context) error, log *logrus.Logger) {
+		err := closer(context.Background())
 		if err != nil {
 			log.Fatal(err)
 		}

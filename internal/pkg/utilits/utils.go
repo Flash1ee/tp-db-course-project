@@ -1,8 +1,9 @@
 package utilits
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
+	"github.com/jackc/pgx/v4"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	"os"
@@ -11,7 +12,7 @@ import (
 )
 
 type ExpectedConnections struct {
-	SqlConnection *sql.DB
+	SqlConnection *pgx.Conn
 	PathFiles     string
 }
 
@@ -40,11 +41,11 @@ func NewLogger(config *configs.Config) (log *logrus.Logger, closeResource func()
 	return logger, f.Close
 }
 
-func NewPostgresConnection(config *configs.RepositoryConnections) (db *sql.DB, closeResource func() error) {
-	db, err := sql.Open("postgres", config.DataBaseUrl)
+func NewPostgresConnection(config *configs.RepositoryConnections) (db *pgx.Conn, closeResource func(ctx context.Context) error) {
+	conn, err := pgx.Connect(context.Background(), config.DataBaseUrl)
 	if err != nil {
 		logrus.Fatal(err)
 	}
 
-	return db, db.Close
+	return conn, conn.Close
 }
