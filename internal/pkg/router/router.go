@@ -28,3 +28,6 @@ func (r *CustomRouter) Post(path string, handler http.Handler) {
 func (r *CustomRouter) HandleFunc(url string, f func(http.ResponseWriter, *http.Request), method string) {
 	r.router.HandlerFunc(method, url, f)
 }
+func (rout *CustomRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	rout.ServeHTTP(w, r)
+}
