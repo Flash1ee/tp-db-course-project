@@ -5,6 +5,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"tp-db-project/configs"
+	users_handler "tp-db-project/internal/app/users/delivery/http"
+	"tp-db-project/internal/app/users/users_repository"
+	"tp-db-project/internal/app/users/users_usecase"
 	"tp-db-project/internal/pkg/handler"
 	http_router "tp-db-project/internal/pkg/router"
 	"tp-db-project/internal/pkg/utilits"
@@ -37,7 +40,10 @@ func (s *Server) Start() error {
 		return err
 	}
 
-	router := http_router.NewRouter()
+	router := http_router.NewRouter(s.logger)
+
+	userUsecase := users_usecase.NewUsersUsecase(users_repository.NewUsersRepository(s.connections.SqlConnection))
+	_ = users_handler.NewUsersHandler(router, s.logger, userUsecase)
 
 	s.logger.Info("Server start")
 	return http.ListenAndServe(s.config.BindAddr, router)

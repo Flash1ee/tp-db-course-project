@@ -30,5 +30,6 @@ COPY . .
 COPY --from=build /app/main/ .
 
 EXPOSE 5000
+RUN mkdir -p ./logs/
 ENV PGPASSWORD password
-CMD service postgresql start && psql -h localhost -d db_forum -U flashie -p 5432 -a -q -f ./scripts/initDB.sql && ./main
+CMD service postgresql start && psql -h localhost -d db_forum -U flashie -p 5432 -a -q -f ./scripts/db.sql && ./main

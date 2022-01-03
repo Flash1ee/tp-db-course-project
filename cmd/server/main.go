@@ -12,7 +12,7 @@ import (
 var configPath string
 
 func init() {
-	flag.StringVar(&configPath, "config-path", "configs/config.toml", "path to config file")
+	flag.StringVar(&configPath, "config-path", "configs/configs.toml", "path to config file")
 }
 
 func main() {

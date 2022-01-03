@@ -1,21 +1,23 @@
 package router
 
 import (
-	"github.com/gorilla/context"
+	go_context "context"
 	"github.com/julienschmidt/httprouter"
+	"github.com/sirupsen/logrus"
 	"net/http"
 )
 
 type CustomRouter struct {
 	router *httprouter.Router
+	logger *logrus.Logger
 }
 
-func NewRouter() *CustomRouter {
-	return &CustomRouter{httprouter.New()}
+func NewRouter(logger *logrus.Logger) *CustomRouter {
+	return &CustomRouter{router: httprouter.New(), logger: logger}
 }
 func wrapHandler(h http.Handler) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		context.Set(r, "params", ps)
+		r = r.WithContext(go_context.WithValue(r.Context(), "params", ps))
 		h.ServeHTTP(w, r)
 	}
 }
@@ -29,5 +31,6 @@ func (r *CustomRouter) HandleFunc(url string, f func(http.ResponseWriter, *http.
 	r.router.HandlerFunc(method, url, f)
 }
 func (rout *CustomRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rout.ServeHTTP(w, r)
+	rout.logger.Info(r)
+	rout.router.ServeHTTP(w, r)
 }
