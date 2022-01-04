@@ -102,7 +102,7 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 	return res, nil
 }
 
-func (r *PostRepository) Update(id int64, req *models.RequestCreateMessage) (*models.ResponsePost, error) {
+func (r *PostRepository) Update(id int64, req *models.RequestUpdateMessage) (*models.ResponsePost, error) {
 	var post *models.ResponsePost
 
 	postTime := &time.Time{}

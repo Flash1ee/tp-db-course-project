@@ -1,4 +1,4 @@
-package forum_repository
+package repository
 
 import (
 	"context"

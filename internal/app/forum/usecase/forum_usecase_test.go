@@ -13,7 +13,7 @@ type SuiteForumUsecase struct {
 
 func (s *SuiteForumUsecase) SetupSuite() {
 	s.SuiteUsecase.SetupSuite()
-	s.uc = NewForumUsecase(s.MockForumRepository)
+	//s.uc = NewForumUsecase(s.MockForumRepository)
 }
 
 func TestUsecaseForum(t *testing.T) {

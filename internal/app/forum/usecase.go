@@ -7,7 +7,7 @@ import (
 	models_users "tp-db-project/internal/app/users/models"
 )
 
-//go:generate mockgen -destination=mocks/usecase.go -package=mock_forum -mock_names=Usecase=ForumUsecase . Usecase
+//go:generate mockgen -destination=usecase/mocks/usecase.go -package=mock_forum -mock_names=Usecase=ForumUsecase . Usecase
 
 type Usecase interface {
 	Create(req *models.RequestCreateForum) (*models.Forum, error)

@@ -1,5 +1,5 @@
 package models
 
-type RequestCreateMessage struct {
+type RequestUpdateMessage struct {
 	Message string `json:"message"`
 }

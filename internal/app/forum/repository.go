@@ -7,7 +7,7 @@ import (
 	models_users "tp-db-project/internal/app/users/models"
 )
 
-//go:generate mockgen -destination=mocks/repository.go -package=mock_forum -mock_names=Repository=ForumRepository . Repository
+//go:generate mockgen -destination=repository/mocks/repository.go -package=mock_forum -mock_names=Repository=ForumRepository . Repository
 
 type Repository interface {
 	Create(req *models.RequestCreateForum) error
