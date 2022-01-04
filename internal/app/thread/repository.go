@@ -18,4 +18,7 @@ type Repository interface {
 	GetBySlug(slug string) (*models.ResponseThread, error)
 	UpdateByID(id int64, req *models.RequestUpdateThread) (*models.ResponseThread, error)
 	UpdateBySlug(slug string, req *models.RequestUpdateThread) (*models.ResponseThread, error)
+	GetPostsByFlats(id int, since int64, desc bool, pag *pag_models.Pagination) ([]post_models.ResponsePost, error)
+	GetPostsByTree(id int, since int64, desc bool, pag *pag_models.Pagination) ([]post_models.ResponsePost, error)
+	GetPostsByParentTree(id int, since int64, desc bool, pag *pag_models.Pagination) ([]post_models.ResponsePost, error)
 }

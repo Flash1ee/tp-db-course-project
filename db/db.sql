@@ -30,7 +30,6 @@ CREATE TABLE IF NOT EXISTS thread
     slug    citext UNIQUE,
     created timestamp with time zone DEFAULT now()
 );
-
 CREATE TABLE IF NOT EXISTS post
 (
     id        bigserial PRIMARY KEY NOT NULL UNIQUE,
@@ -40,7 +39,8 @@ CREATE TABLE IF NOT EXISTS post
     is_edited bool                     DEFAULT FALSE,
     forum     citext REFERENCES forum (slug),
     thread    integer REFERENCES thread (id),
-    created   timestamp with time zone DEFAULT now()
+    created   timestamp with time zone DEFAULT now(),
+    path      bigint[]                 DEFAULT ARRAY []::INTEGER[]
 );
 
 CREATE TABLE IF NOT EXISTS vote

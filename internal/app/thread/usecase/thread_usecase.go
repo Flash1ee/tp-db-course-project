@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"strconv"
 	"tp-db-project/internal/app"
+	pag_models "tp-db-project/internal/app/models"
+	post_models "tp-db-project/internal/app/post/models"
 	"tp-db-project/internal/app/thread"
 	"tp-db-project/internal/app/thread/models"
 	"tp-db-project/internal/app/vote"
@@ -130,5 +132,29 @@ func (u *ThreadUsecase) UpdateVoice(slugOrID string, req *models2.RequestVoteUpd
 			}
 		}
 		return true, nil
+	}
+}
+func (u *ThreadUsecase) GetPostsBySort(slugOrId string, sort string, since int64, desc bool, pag *pag_models.Pagination) ([]post_models.ResponsePost, error) {
+	var idInt int
+	var err error
+	idInt, err = strconv.Atoi(slugOrId)
+	if err != nil {
+		th, err := u.repo.GetBySlug(slugOrId)
+		if err != nil {
+			return nil, err
+		} else {
+			idInt = int(th.Id)
+		}
+	}
+
+	switch sort {
+	case "flat":
+		return u.repo.GetPostsByFlats(idInt, since, desc, pag)
+	case "tree":
+		return u.repo.GetPostsByTree(idInt, since, desc, pag)
+	case "parent_tree":
+		return u.repo.GetPostsByParentTree(idInt, since, desc, pag)
+	default:
+		return u.repo.GetPostsByFlats(idInt, since, desc, pag)
 	}
 }

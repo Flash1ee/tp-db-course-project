@@ -6,7 +6,9 @@ import (
 	"github.com/justinas/alice"
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"strconv"
 	mw "tp-db-project/internal/app/middlewares"
+	models3 "tp-db-project/internal/app/models"
 	"tp-db-project/internal/app/thread"
 	"tp-db-project/internal/app/thread/models"
 	models2 "tp-db-project/internal/app/vote/models"
@@ -61,14 +63,56 @@ func (h *ThreadHandler) ThreadInfo(w http.ResponseWriter, r *http.Request) {
 
 }
 func (h *ThreadHandler) ThreadPosts(w http.ResponseWriter, r *http.Request) {
-	//params, ok := r.Context().Value("params").(httprouter.Params)
-	//if !ok || len(params) > 1 || params.ByName("slug_or_id") == "" {
-	//	h.Error(w, r, http.StatusBadRequest, InvalidArgument)
-	//	return
-	//}
-	//slugOrID := params.ByName("slug_or_id")
-	h.Respond(w, r, http.StatusOK, nil)
+	params, ok := r.Context().Value("params").(httprouter.Params)
+	if !ok || len(params) > 1 || params.ByName("slug_or_id") == "" {
+		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
+		return
+	}
+	var err error
+	slugOrID := params.ByName("slug_or_id")
+	limit := params.ByName("limit")
+	since := params.ByName("since")
+	sort := params.ByName("sort")
+	desc := params.ByName("desc")
 
+	limitInt := 100
+	sinceInt := 0
+	descBool := false
+
+	if limit != "" {
+		limitInt, err = strconv.Atoi(limit)
+		if err != nil {
+			h.Error(w, r, http.StatusBadRequest, InvalidArgument)
+			return
+		}
+	}
+	if since != "" {
+		if sinceInt, err = strconv.Atoi(since); err != nil {
+			h.Error(w, r, http.StatusBadRequest, InvalidArgument)
+			return
+		}
+	}
+	if sort != "flat" && sort != "tree" && sort != "parent_tree" &&
+		sort != "" {
+		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
+		return
+	}
+
+	if desc == "true" {
+		descBool = true
+	} else if desc != "false" {
+		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
+		return
+	}
+
+	res, err := h.usecase.GetPostsBySort(slugOrID, sort, int64(sinceInt), descBool, &models3.Pagination{
+		Limit: int64(limitInt),
+	})
+	if err != nil {
+		h.UsecaseError(w, r, err, CodeByErrorGet)
+		return
+	}
+	h.Respond(w, r, http.StatusOK, res)
 }
 
 func (h *ThreadHandler) UpdateThread(w http.ResponseWriter, r *http.Request) {

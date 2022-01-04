@@ -160,6 +160,177 @@ func (r *ThreadRepository) CreatePosts(forum string, thread int64, posts []*mode
 
 	return newPosts, nil
 }
+
+func (r *ThreadRepository) GetPostsByFlats(id int, since int64, desc bool, pag *pag_models.Pagination) ([]post_models.ResponsePost, error) {
+	queryGetPostsByFlat := "SELECT id, parent, author, message, is_edited, forum, thread, created FROM post " +
+		"WHERE thread = $1 "
+	queryGetPostsByFlatSince := "SELECT id, parent, author, message, is_edited, forum, thread, created FROM post " +
+		"WHERE thread = $1 AND id < $2 "
+	var rows pgx.Rows
+	var err error
+	orderBy := "ORDER BY id "
+	qLimit := "LIMIT $2"
+	if desc {
+		orderBy += "DESC"
+	}
+
+	if since == 0 {
+		rows, err = r.conn.Query(context.Background(), queryGetPostsByFlat+orderBy+qLimit, id, pag.Limit)
+	} else {
+		rows, err = r.conn.Query(context.Background(), queryGetPostsByFlatSince+orderBy+qLimit, id, pag.Limit)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []post_models.ResponsePost
+	for rows.Next() {
+		post := post_models.ResponsePost{}
+
+		err = rows.Scan(&post.Id, &post.Parent,
+			&post.Author,
+			&post.Message,
+			&post.IsEdited,
+			&post.Forum,
+			&post.Thread,
+			&post.Created)
+		if err != nil {
+			return nil, err
+		}
+
+		posts = append(posts, post)
+	}
+
+	return posts, err
+}
+
+func (r *ThreadRepository) GetPostsByTree(id int, since int64, desc bool, pag *pag_models.Pagination) ([]post_models.ResponsePost, error) {
+	queryGetPostsByTree := "SELECT id, parent, author, message, is_edited, forum, thread, created FROM post " +
+		"WHERE thread = $1 "
+	queryGetPostsByTreeSince := "SELECT id, parent, author, message, is_edited, forum, thread, created FROM post " +
+		"WHERE thread = $1 AND path < (SELECT path FROM post WHERE id = $2) "
+	var rows pgx.Rows
+	var err error
+	orderBy := "ORDER BY path %s, id %s"
+	qLimit := "LIMIT $2"
+	if desc {
+		orderBy = fmt.Sprintf(orderBy, "DESC", "DESC")
+	} else {
+		orderBy = fmt.Sprintf(orderBy, "ASC", "ASC")
+	}
+	if since == 0 {
+		rows, err = r.conn.Query(context.Background(), queryGetPostsByTree+orderBy+qLimit, id, pag.Limit)
+	} else {
+		rows, err = r.conn.Query(context.Background(), queryGetPostsByTreeSince+orderBy+qLimit, id, since, pag.Limit)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []post_models.ResponsePost
+	for rows.Next() {
+		post := post_models.ResponsePost{}
+
+		err = rows.Scan(
+			&post.Id,
+			&post.Parent,
+			&post.Author,
+			&post.Message,
+			&post.IsEdited,
+			&post.Forum,
+			&post.Thread,
+			&post.Created)
+		if err != nil {
+			return nil, err
+		}
+
+		posts = append(posts, post)
+	}
+
+	return posts, nil
+}
+
+func (r *ThreadRepository) GetPostsByParentTree(id int, since int64, desc bool, pag *pag_models.Pagination) ([]post_models.ResponsePost, error) {
+	//queryGetPostsByParentTree := "SELECT id, parent, author, message, is_edited, forum, thread, created FROM post " +
+	//	"WHERE thread = $1 "
+	//queryGetPostsByParentTreeSince := "SELECT id, parent, author, message, is_edited, forum, thread, created FROM post " +
+	//	"WHERE thread = $1 AND path < (SELECT path FROM post WHERE id = $2) "
+	var rows pgx.Rows
+	var err error
+	//orderBy := "ORDER BY path %s, id %s"
+	//qLimit := "LIMIT $2"
+	//if desc {
+	//	orderBy = fmt.Sprintf(orderBy, "DESC", "DESC")
+	//} else {
+	//	orderBy = fmt.Sprintf(orderBy, "ASC", "ASC")
+	//
+	//}
+	if since == 0 {
+		if desc {
+			rows, err = r.conn.Query(context.Background(), `
+					SELECT id, parent, author, message, is_edited, forum, thread, created FROM post
+					WHERE path[1] IN (SELECT id FROM post WHERE thread = $1 AND parent IS NULL ORDER BY id DESC LIMIT $2)
+					ORDER BY path[1] DESC, path ASC, id ASC;`,
+				id,
+				pag.Limit)
+		} else {
+			rows, err = r.conn.Query(context.Background(), `
+					SELECT id, parent, author, message, is_edited, forum, thread, created FROM post
+					WHERE path[1] IN (SELECT id FROM post WHERE thread = $1 AND parent IS NULL ORDER BY id ASC LIMIT $2)
+					ORDER BY path ASC, id ASC;`,
+				id,
+				pag.Limit)
+		}
+	} else {
+		if desc {
+			rows, err = r.conn.Query(context.Background(), `
+					SELECT id, parent, author, message, is_edited, forum, thread, created FROM post
+					WHERE path[1] IN (SELECT id FROM post WHERE thread = $1 AND parent IS NULL AND path[1] <
+					(SELECT path[1] FROM post WHERE id = $2) ORDER BY id DESC LIMIT $3)
+					ORDER BY path[1] DESC, path ASC, id ASC;`,
+				id,
+				since,
+				pag.Limit)
+		} else {
+			rows, err = r.conn.Query(context.Background(), `
+					SELECT id, parent, author, message, is_edited, forum, thread, created FROM post
+					WHERE path[1] IN (SELECT id FROM post WHERE thread = $1 AND parent IS NULL AND path[1] >
+					(SELECT path[1] FROM post WHERE id = $2) ORDER BY id ASC LIMIT $3) 
+					ORDER BY path ASC, id ASC;`,
+				id,
+				since,
+				pag.Limit)
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []post_models.ResponsePost
+	for rows.Next() {
+		post := post_models.ResponsePost{}
+
+		err = rows.Scan(
+			&post.Id,
+			&post.Parent,
+			&post.Author,
+			&post.Message,
+			&post.IsEdited,
+			&post.Forum,
+			&post.Thread,
+			&post.Created)
+		if err != nil {
+			return nil, err
+		}
+
+		posts = append(posts, post)
+	}
+
+	return posts, nil
+}
 func CreateQueryGetPosts(sort string, since string, desc bool, pag *pag_models.Pagination) (string, error) {
 	query := queryGetPosts
 	orderBy := "ORDER BY created "
