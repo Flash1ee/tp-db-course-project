@@ -12,6 +12,6 @@ import (
 type Repository interface {
 	Create(req *models.RequestCreateForum) error
 	GetForumBySlag(slag string) (*models.Forum, error)
-	GetForumUsers(slug string, since string, desc bool, pag *models_utilits.Pagination) ([]*models_users.User, error)
-	GetForumThreads(slug string, since string, desc bool, pag *models_utilits.Pagination) ([]*models_thread.Thread, error)
+	GetForumUsers(slug string, since int, desc bool, pag *models_utilits.Pagination) ([]*models_users.User, error)
+	GetForumThreads(slug string, since int, desc bool, pag *models_utilits.Pagination) ([]*models_thread.Thread, error)
 }

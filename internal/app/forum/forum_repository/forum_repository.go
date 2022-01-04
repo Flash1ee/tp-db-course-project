@@ -12,11 +12,10 @@ import (
 )
 
 const (
-	queryCreate                    = "INSERT INTO forum(title, users_nickname, slug) VALUES($1, $2, $3);"
-	queryGetForumBySlug            = "SELECT title, users_nickname, slug, posts, threads FROM forum WHERE slug = $1"
-	queryCreateForumThreadWithTime = "INSERT INTO thread(title, author, forum, message, created) VALUES($1, $2, $3, $4, $5)"
-	queryCreateForumThreadNoTime   = "INSERT INTO thread(title, author, forum, message) VALUES($1, $2, $3, $4)"
-	queryGetForumUsers             = "SELECT nickname, fullname, about, email FROM forum " +
+	queryCreate         = "INSERT INTO forum(title, users_nickname, slug) VALUES($1, $2, $3);"
+	queryGetForumBySlug = "SELECT title, users_nickname, slug, posts, threads FROM forum WHERE slug = $1"
+
+	queryGetForumUsers = "SELECT nickname, fullname, about, email FROM forum " +
 		"JOIN thread t ON forum.slug = t.forum JOIN post p ON t.id = p.thread " +
 		"JOIN users u ON (p.author = u.nickname OR t.author = u.nickname) " +
 		"WHERE forum.slug = $1 "
@@ -49,20 +48,8 @@ func (r *ForumRepository) GetForumBySlag(slag string) (*models.Forum, error) {
 	}
 	return forum, nil
 }
-func (r *ForumRepository) CreateForumThread(forumName string, req *models.RequestCreateThread) error {
-	var err error
-	if req == nil {
-		return ArgError
-	}
-	if req.Created == "" {
-		_, err = r.conn.Exec(context.Background(), queryCreateForumThreadNoTime, req.Title, req.Author, forumName, req.Message)
-	} else {
-		_, err = r.conn.Exec(context.Background(), queryCreateForumThreadWithTime, req.Title, req.Author, forumName, req.Message, req.Created)
-	}
 
-	return err
-}
-func (r *ForumRepository) GetForumUsers(slug string, since string, desc bool, pag *models_utilits.Pagination) ([]*models_users.User, error) {
+func (r *ForumRepository) GetForumUsers(slug string, since int, desc bool, pag *models_utilits.Pagination) ([]*models_users.User, error) {
 	orderBy := "ORDER BY u.nickname "
 	querySince := "AND u.nickname > $2"
 	query := queryGetForumUsers
@@ -76,7 +63,7 @@ func (r *ForumRepository) GetForumUsers(slug string, since string, desc bool, pa
 	if limit > 0 {
 		orderBy += fmt.Sprintf("LIMIT %d", pag.Limit)
 	}
-	if since != "" {
+	if since != -1 {
 		query = query + querySince + orderBy
 		rows, err = r.conn.Query(context.Background(), query, slug, since)
 	} else {
@@ -99,7 +86,7 @@ func (r *ForumRepository) GetForumUsers(slug string, since string, desc bool, pa
 
 	return res, nil
 }
-func (r *ForumRepository) GetForumThreads(slug string, since string, desc bool, pag *models_utilits.Pagination) ([]*models_thread.Thread, error) {
+func (r *ForumRepository) GetForumThreads(slug string, since int, desc bool, pag *models_utilits.Pagination) ([]*models_thread.Thread, error) {
 	orderBy := "ORDER BY t.created "
 	querySince := "AND t.created > $2"
 	query := queryGetForumThreads
@@ -114,7 +101,7 @@ func (r *ForumRepository) GetForumThreads(slug string, since string, desc bool, 
 	if limit > 0 {
 		orderBy += fmt.Sprintf("LIMIT %d", pag.Limit)
 	}
-	if since != "" {
+	if since != -1 {
 		query = query + querySince + orderBy
 		rows, err = r.conn.Query(context.Background(), query, slug, since)
 	} else {

@@ -7,6 +7,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgx/v4"
 	"time"
+	models2 "tp-db-project/internal/app/forum/models"
 	pag_models "tp-db-project/internal/app/models"
 	post_models "tp-db-project/internal/app/post/models"
 	"tp-db-project/internal/app/thread/models"
@@ -18,7 +19,10 @@ const (
 		"WHERE id = $1;"
 	queryGetThreadBySlug = "SELECT id, title, author, forum, message, votes, slug, created FROM thread " +
 		"WHERE slug = $1;"
-
+	queryCreateForumThreadWithTime = "INSERT INTO thread(title, author, forum, message, created) VALUES($1, $2, $3, $4, $5) " +
+		"RETURNING id, title, author, forum, message, votes, slug, created;"
+	queryCreateForumThreadNoTime = "INSERT INTO thread(title, author, forum, message) VALUES($1, $2, $3, $4) " +
+		"RETURNING id, title, author, forum, message, votes, slug, created; "
 	queryUpdateThreadById = "UPDATE thread SET title = $2, message = $3 " +
 		"WHERE id = $1 RETURNING id, title, author, forum, message, votes, slug, created;"
 	queryUpdateThreadBySlug = "UPDATE thread SET title = $2, message = $3 " +
@@ -37,6 +41,29 @@ func NewThreadRepository(conn *pgx.Conn) *ThreadRepository {
 	return &ThreadRepository{
 		conn: conn,
 	}
+}
+
+func (r *ThreadRepository) CreateThread(forumName string, req *models2.RequestCreateThread) (*models.ResponseThread, error) {
+	var err error
+	res := &models.ResponseThread{}
+	if req == nil {
+		return nil, thread_repository.ArgError
+	}
+	threadTime := &time.Time{}
+
+	if req.Created == "" {
+		err = r.conn.QueryRow(context.Background(), queryCreateForumThreadNoTime, req.Title, req.Author, forumName, req.Message).
+			Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
+				&res.Message, &res.Votes, &res.Slug, threadTime)
+	} else {
+		err = r.conn.QueryRow(context.Background(), queryCreateForumThreadWithTime, req.Title, req.Author, forumName, req.Message, req.Created).
+			Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
+				&res.Message, &res.Votes, &res.Slug, threadTime)
+	}
+
+	res.Created = strfmt.DateTime(threadTime.UTC()).String()
+
+	return res, err
 }
 
 func (r *ThreadRepository) GetByID(id int64) (*models.ResponseThread, error) {
