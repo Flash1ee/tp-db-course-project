@@ -1,4 +1,4 @@
-package postgresql
+package service_postgresql
 
 import (
 	"context"

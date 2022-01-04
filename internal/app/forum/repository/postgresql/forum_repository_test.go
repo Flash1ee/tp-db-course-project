@@ -1,4 +1,4 @@
-package repository
+package forum_postgresql
 
 //type SuiteForumRepository struct {
 //	Suite

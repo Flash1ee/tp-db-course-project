@@ -1,4 +1,4 @@
-package thread_repository
+package thread_postgresql
 
 import (
 	"context"
@@ -330,78 +330,4 @@ func (r *ThreadRepository) GetPostsByParentTree(id int, since int64, desc bool, 
 	}
 
 	return posts, nil
-}
-func CreateQueryGetPosts(sort string, since string, desc bool, pag *pag_models.Pagination) (string, error) {
-	query := queryGetPosts
-	orderBy := "ORDER BY created "
-	querySince := "AND id > $2"
-	limit := pag.Limit
-
-	switch sort {
-	case "":
-		fallthrough
-	case "flat":
-		if desc {
-			orderBy += "DESC"
-		}
-		if limit > 0 {
-			orderBy += fmt.Sprintf("LIMIT %d", pag.Limit)
-		}
-
-		if since != "" {
-			query = query + querySince + orderBy
-
-		} else {
-			query = query + orderBy
-		}
-		return query, nil
-	case "tree":
-	case "parent_tree":
-	default:
-		return "", repository.SortArgError
-
-	}
-	return query, nil
-}
-func (r *ThreadRepository) GetPostsById(threadId int64, sort string, since string, desc bool, pag *pag_models.Pagination) ([]post_models.ResponsePost, error) {
-	//orderBy := "ORDER BY created "
-	//querySince := "AND id > $2"
-	//query := queryGetPosts
-	//limit := pag.Limit
-
-	var rows pgx.Rows
-	var err error
-	query, _ := CreateQueryGetPosts(sort, since, desc, pag)
-	//if desc {
-	//	orderBy += "DESC"
-	//}
-	//
-	//if limit > 0 {
-	//	orderBy += fmt.Sprintf("LIMIT %d", pag.Limit)
-	//}
-
-	if since != "" {
-		//query = query + querySince + orderBy
-		rows, err = r.conn.Query(context.Background(), query, threadId, since)
-	} else {
-		//query = query + orderBy
-		rows, err = r.conn.Query(context.Background(), query, threadId)
-	}
-
-	defer rows.Close()
-
-	posts := make([]post_models.ResponsePost, 0)
-	for rows.Next() {
-		postTime := &time.Time{}
-		post := &post_models.ResponsePost{}
-		if err = rows.Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
-			&post.IsEdited, &post.Forum, &post.Thread, postTime); err != nil {
-			return nil, err
-		}
-		post.Created = strfmt.DateTime(postTime.UTC()).String()
-
-		posts = append(posts, *post)
-	}
-	return posts, nil
-
 }

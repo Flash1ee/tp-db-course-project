@@ -6,9 +6,22 @@ import (
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"tp-db-project/configs"
+	forum_handler "tp-db-project/internal/app/forum/delivery/http"
+	"tp-db-project/internal/app/forum/repository/postgresql"
+	forum_usecase "tp-db-project/internal/app/forum/usecase"
+	post_handler "tp-db-project/internal/app/post/delivery/http"
+	post_postgresql "tp-db-project/internal/app/post/repository/postgresql"
+	post_usecase "tp-db-project/internal/app/post/usecase"
+	service_handler "tp-db-project/internal/app/service/delivery/http"
+	"tp-db-project/internal/app/service/repository/postgresql"
+	"tp-db-project/internal/app/service/service_usecase"
+	thread_handler "tp-db-project/internal/app/thread/delivery/http"
+	thread_postgresql "tp-db-project/internal/app/thread/repository/postgresql"
+	thread_usecase "tp-db-project/internal/app/thread/usecase"
 	users_handler "tp-db-project/internal/app/users/delivery/http"
-	"tp-db-project/internal/app/users/users_repository"
+	"tp-db-project/internal/app/users/users_repository/postgresql"
 	"tp-db-project/internal/app/users/users_usecase"
+	vote_postgresql "tp-db-project/internal/app/vote/repository/postgresql"
 	"tp-db-project/internal/pkg/handler"
 	http_router "tp-db-project/internal/pkg/router"
 	"tp-db-project/internal/pkg/utilits"
@@ -42,9 +55,24 @@ func (s *Server) Start() error {
 	}
 
 	router := http_router.NewRouter(s.logger)
+	usersRepo := users_postgresql.NewUsersRepository(s.connections.SqlConnection)
+	forumRepo := forum_postgresql.NewForumRepository(s.connections.SqlConnection)
+	threadRepo := thread_postgresql.NewThreadRepository(s.connections.SqlConnection)
+	postRepo := post_postgresql.NewPostRepository(s.connections.SqlConnection)
+	serviceRepo := service_postgresql.NewServiceRepository(s.connections.SqlConnection)
+	voteRepo := vote_postgresql.NewVoteRepository(s.connections.SqlConnection)
 
-	userUsecase := users_usecase.NewUsersUsecase(users_repository.NewUsersRepository(s.connections.SqlConnection))
+	userUsecase := users_usecase.NewUsersUsecase(usersRepo)
+	postUsecase := post_usecase.NewPostUsecase(postRepo)
+	forumUsecase := forum_usecase.NewForumUsecase(forumRepo, usersRepo, threadRepo)
+	serviceUsecase := service_usecase.NewServiceUsecase(serviceRepo)
+	threadUsecase := thread_usecase.NewThreadUsecase(threadRepo, voteRepo)
+
 	_ = users_handler.NewUsersHandler(router, s.logger, userUsecase)
+	_ = post_handler.NewPostHandler(router, s.logger, postUsecase)
+	_ = forum_handler.NewForumHandler(router, s.logger, forumUsecase)
+	_ = service_handler.NewServiceHandler(router, s.logger, serviceUsecase)
+	_ = thread_handler.NewThreadHandler(router, s.logger, threadUsecase)
 
 	s.logger.Info("Server start")
 	return http.ListenAndServe(s.config.BindAddr, router)

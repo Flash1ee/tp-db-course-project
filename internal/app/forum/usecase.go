@@ -12,7 +12,6 @@ import (
 type Usecase interface {
 	Create(req *models.RequestCreateForum) (*models.Forum, error)
 	CreateThread(forumName string, req *models.RequestCreateThread) (*models_thread.ResponseThread, error)
-	GetForumBySlag(slag string) (*models.Forum, error)
 	GetForumUsers(slug string, since int, desc bool, pag *models_utilits.Pagination) ([]*models_users.User, error)
 	GetForumThreads(slug string, since int, desc bool, pag *models_utilits.Pagination) ([]*models_thread.Thread, error)
 }
