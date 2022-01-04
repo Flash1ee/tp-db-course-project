@@ -2,7 +2,7 @@ package users
 
 import "tp-db-project/internal/app/users/models"
 
-//go:generate mockgen -destination=mocks/usecase.go -package=mock_users -mock_names=Usecase=UsersUsecase . Usecase
+//go:generate mockgen -destination=usecase/mocks/usecase.go -package=mock_users -mock_names=Usecase=UsersUsecase . Usecase
 
 type Usecase interface {
 	CreateUser(user *models.User) (*models.User, error)

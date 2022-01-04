@@ -2,14 +2,16 @@ package vote_postgresql
 
 import (
 	"context"
+	"database/sql"
 	"github.com/jackc/pgx/v4"
 	"tp-db-project/internal/app/vote/models"
-	"tp-db-project/internal/app/vote/vote_repository"
+	"tp-db-project/internal/app/vote/repository"
 )
 
 const (
-	queryCreateVote = "INSERT INTO vote(nickname, thread_id, voice) VALUES($1, $2, $3);"
-	queryUpdateVote = "UPDATE vote SET voice = $3 WHERE thread_id = $1 and nickname = $2 and voice != $3;"
+	queryCreateVote  = "INSERT INTO vote(nickname, thread_id, voice) VALUES($1, $2, $3);"
+	queryUpdateVote  = "UPDATE vote SET voice = $3 WHERE thread_id = $1 and nickname = $2 and voice != $3;"
+	queryCheckExists = "SELECT id from vote where nickname = $1 and thread_id = $2;"
 )
 
 type VoteRepository struct {
@@ -21,10 +23,19 @@ func NewVoteRepository(conn *pgx.Conn) *VoteRepository {
 		conn: conn,
 	}
 }
-
+func (r *VoteRepository) Exists(nickname string, threadID int64) (bool, error) {
+	_, err := r.conn.Query(context.Background(), queryCheckExists, nickname, threadID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
 func (r *VoteRepository) Create(vote *models.Vote) error {
 	if vote == nil {
-		return vote_repository.InvalidArgument
+		return repository.InvalidArgument
 	}
 	if _, err := r.conn.Exec(context.Background(), queryCreateVote, vote.Nickname, vote.ThreadID, vote.Voice); err != nil {
 		return err
@@ -33,7 +44,7 @@ func (r *VoteRepository) Create(vote *models.Vote) error {
 }
 func (r *VoteRepository) Update(threadID int64, req *models.RequestVoteUpdate) (bool, error) {
 	if req == nil {
-		return false, vote_repository.InvalidArgument
+		return false, repository.InvalidArgument
 	}
 	res, err := r.conn.Exec(context.Background(), queryUpdateVote, threadID, req.Nickname, req.Voice)
 	if err != nil {

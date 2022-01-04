@@ -11,7 +11,7 @@ import (
 	pag_models "tp-db-project/internal/app/models"
 	post_models "tp-db-project/internal/app/post/models"
 	"tp-db-project/internal/app/thread/models"
-	"tp-db-project/internal/app/thread/thread_repository"
+	"tp-db-project/internal/app/thread/repository"
 )
 
 const (
@@ -47,7 +47,7 @@ func (r *ThreadRepository) CreateThread(forumName string, req *models2.RequestCr
 	var err error
 	res := &models.ResponseThread{}
 	if req == nil {
-		return nil, thread_repository.ArgError
+		return nil, repository.ArgError
 	}
 	threadTime := &time.Time{}
 
@@ -72,7 +72,7 @@ func (r *ThreadRepository) GetByID(id int64) (*models.ResponseThread, error) {
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
 			&res.Message, &res.Votes, &res.Slug, &res.Created); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, thread_repository.NotFound
+			return nil, repository.NotFound
 		}
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (r *ThreadRepository) GetBySlug(slug string) (*models.ResponseThread, error
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
 			&res.Message, &res.Votes, &res.Slug, &res.Created); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, thread_repository.NotFound
+			return nil, repository.NotFound
 		}
 
 		return nil, err
@@ -187,7 +187,7 @@ func CreateQueryGetPosts(sort string, since string, desc bool, pag *pag_models.P
 	case "tree":
 	case "parent_tree":
 	default:
-		return "", thread_repository.SortArgError
+		return "", repository.SortArgError
 
 	}
 	return query, nil

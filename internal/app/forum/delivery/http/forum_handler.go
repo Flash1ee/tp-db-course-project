@@ -65,7 +65,7 @@ func (h *ForumHandler) GetForumInfo(w http.ResponseWriter, r *http.Request) {
 		h.UsecaseError(w, r, err, CodeByErrorGet)
 		return
 	}
-	h.Respond(w, r, http.StatusOK, res)
+	h.Respond(w, r, http.StatusOK, *res)
 }
 
 func (h *ForumHandler) ForumUsers(w http.ResponseWriter, r *http.Request) {

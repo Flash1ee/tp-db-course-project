@@ -1,4 +1,4 @@
-package thread_repository
+package repository
 
 import "github.com/pkg/errors"
 
