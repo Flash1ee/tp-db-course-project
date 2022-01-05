@@ -2,7 +2,6 @@ package thread_postgresql
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgx/v4"
@@ -71,7 +70,7 @@ func (r *ThreadRepository) GetByID(id int64) (*models.ResponseThread, error) {
 	if err := r.conn.QueryRow(context.Background(), queryGetThreadById, id).
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
 			&res.Message, &res.Votes, &res.Slug, &res.Created); err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, repository.NotFound
 		}
 		return nil, err
@@ -86,7 +85,7 @@ func (r *ThreadRepository) GetBySlug(slug string) (*models.ResponseThread, error
 	if err := r.conn.QueryRow(context.Background(), queryGetThreadBySlug, slug).
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
 			&res.Message, &res.Votes, &res.Slug, &res.Created); err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, repository.NotFound
 		}
 

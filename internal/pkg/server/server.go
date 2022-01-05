@@ -55,6 +55,8 @@ func (s *Server) Start() error {
 	}
 
 	router := http_router.NewRouter(s.logger)
+	routerForum := http_router.NewMuxRouter(s.logger)
+
 	usersRepo := users_postgresql.NewUsersRepository(s.connections.SqlConnection)
 	forumRepo := forum_postgresql.NewForumRepository(s.connections.SqlConnection)
 	threadRepo := thread_postgresql.NewThreadRepository(s.connections.SqlConnection)
@@ -70,10 +72,17 @@ func (s *Server) Start() error {
 
 	_ = users_handler.NewUsersHandler(router, s.logger, userUsecase)
 	_ = post_handler.NewPostHandler(router, s.logger, postUsecase)
-	_ = forum_handler.NewForumHandler(router, s.logger, forumUsecase)
+	_ = forum_handler.NewForumHandler(routerForum, s.logger, forumUsecase)
 	_ = service_handler.NewServiceHandler(router, s.logger, serviceUsecase)
 	_ = thread_handler.NewThreadHandler(router, s.logger, threadUsecase)
 
 	s.logger.Info("Server start")
-	return http.ListenAndServe(s.config.BindAddr, router)
+	server := http.NewServeMux()
+	server.Handle("/forum/", routerForum)
+	server.Handle("/thread/", router)
+	server.Handle("/service/", router)
+	server.Handle("/user/", router)
+	server.Handle("/post/", router)
+
+	return http.ListenAndServe(s.config.BindAddr, server)
 }

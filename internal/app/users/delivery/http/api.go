@@ -1,7 +1,7 @@
 package users_handler
 
 import (
-	"database/sql"
+	"github.com/jackc/pgx/v4"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"tp-db-project/internal/app/users/users_usecase"
@@ -9,9 +9,9 @@ import (
 )
 
 var CodeByErrorGet = handler.CodeMap{
-	sql.ErrNoRows: {http.StatusNotFound, NotFound, logrus.InfoLevel},
+	pgx.ErrNoRows: {http.StatusNotFound, NotFound, logrus.InfoLevel},
 }
 var CodeByErrorPost = handler.CodeMap{
-	sql.ErrNoRows:                  {http.StatusNotFound, NotFound, logrus.InfoLevel},
+	pgx.ErrNoRows:                  {http.StatusNotFound, NotFound, logrus.InfoLevel},
 	users_usecase.AlreadyExistsErr: {http.StatusConflict, ConflictErr, logrus.WarnLevel},
 }

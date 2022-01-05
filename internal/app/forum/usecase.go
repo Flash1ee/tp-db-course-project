@@ -10,6 +10,7 @@ import (
 //go:generate mockgen -destination=usecase/mocks/usecase.go -package=mock_forum -mock_names=Usecase=ForumUsecase . Usecase
 
 type Usecase interface {
+	GetForum(slug string) (*models.Forum, error)
 	Create(req *models.RequestCreateForum) (*models.Forum, error)
 	CreateThread(forumName string, req *models.RequestCreateThread) (*models_thread.ResponseThread, error)
 	GetForumUsers(slug string, since int, desc bool, pag *models_utilits.Pagination) ([]*models_users.User, error)

@@ -1,7 +1,7 @@
 package thread_usecase
 
 import (
-	"database/sql"
+	"github.com/jackc/pgx/v4"
 	"strconv"
 	"tp-db-project/internal/app"
 	pag_models "tp-db-project/internal/app/models"
@@ -30,7 +30,7 @@ func (u *ThreadUsecase) GetThreadInfo(slugOrID string) (*models.ResponseThread, 
 	case nil:
 		res, err := u.repo.GetByID(int64(ID))
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if err == pgx.ErrNoRows {
 				return nil, NotFound
 			} else {
 				return nil, app.GeneralError{
@@ -43,7 +43,7 @@ func (u *ThreadUsecase) GetThreadInfo(slugOrID string) (*models.ResponseThread, 
 	default:
 		res, err := u.repo.GetBySlug(slugOrID)
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if err == pgx.ErrNoRows {
 				return nil, NotFound
 			} else {
 				return nil, app.GeneralError{
@@ -61,7 +61,7 @@ func (u *ThreadUsecase) UpdateThread(slugOrID string, req *models.RequestUpdateT
 	case nil:
 		res, err := u.repo.UpdateByID(int64(ID), req)
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if err == pgx.ErrNoRows {
 				return nil, NotFound
 			} else {
 				return nil, app.GeneralError{
@@ -74,7 +74,7 @@ func (u *ThreadUsecase) UpdateThread(slugOrID string, req *models.RequestUpdateT
 	default:
 		res, err := u.repo.UpdateBySlug(slugOrID, req)
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if err == pgx.ErrNoRows {
 				return nil, NotFound
 			} else {
 				return nil, app.GeneralError{
@@ -99,7 +99,7 @@ func (u *ThreadUsecase) UpdateVoice(slugOrID string, req *models2.RequestVoteUpd
 	}
 
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return false, NotFound
 		} else {
 			return false, app.GeneralError{

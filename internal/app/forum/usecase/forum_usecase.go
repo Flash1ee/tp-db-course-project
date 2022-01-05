@@ -1,7 +1,7 @@
 package forum_usecase
 
 import (
-	"database/sql"
+	"github.com/jackc/pgx/v4"
 	"tp-db-project/internal/app"
 	"tp-db-project/internal/app/forum"
 	"tp-db-project/internal/app/forum/models"
@@ -32,7 +32,7 @@ func (u *ForumUsecase) Create(req *models.RequestCreateForum) (*models.Forum, er
 		return f, AlreadyExists
 	}
 	if _, err := u.usersRepo.Get(req.User); err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, users_usecase.NotFound
 		}
 		return nil, err
@@ -90,7 +90,7 @@ func (u *ForumUsecase) GetForumThreads(slug string, since int, desc bool, pag *m
 }
 func (u *ForumUsecase) CreateThread(forumName string, req *models.RequestCreateThread) (*models_thread.ResponseThread, error) {
 	if _, err := u.usersRepo.Get(req.Author); err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, users_usecase.NotFound
 		}
 		return nil, err

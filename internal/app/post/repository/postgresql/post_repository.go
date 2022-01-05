@@ -2,7 +2,6 @@ package post_postgresql
 
 import (
 	"context"
-	"database/sql"
 	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgx/v4"
 	"time"
@@ -45,7 +44,7 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 		if err = r.conn.QueryRow(context.Background(), queryGetPost, id).
 			Scan(&res.Post.Id, &res.Post.Parent, &res.Post.Author, &res.Post.Message,
 				&res.Post.IsEdited, &res.Post.Forum, &res.Post.Thread, postTime); err != nil {
-			if err == sql.ErrNoRows {
+			if err == pgx.ErrNoRows {
 				return nil, post_repository.NotFound
 			}
 			return nil, err
@@ -58,7 +57,7 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 			Scan(&res.Post.Id, &res.Post.Parent, &res.Post.Author, &res.Post.Message,
 				&res.Post.IsEdited, &res.Post.Forum, &res.Post.Thread, postTime,
 				&res.Author.Nickname, &res.Author.FullName, &res.Author.About, &res.Author.Email); err != nil {
-			if err == sql.ErrNoRows {
+			if err == pgx.ErrNoRows {
 				return nil, post_repository.NotFound
 			}
 			return nil, err
@@ -73,7 +72,7 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 				&res.Post.IsEdited, &res.Post.Forum, &res.Post.Thread, postTime,
 				&res.Thread.Id, &res.Thread.Title, &res.Thread.Author, &res.Thread.Forum,
 				&res.Thread.Message, &res.Thread.Votes, &res.Thread.Slug, threadTime); err != nil {
-			if err == sql.ErrNoRows {
+			if err == pgx.ErrNoRows {
 				return nil, post_repository.NotFound
 			}
 			return nil, err
@@ -88,7 +87,7 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 				&res.Post.IsEdited, &res.Post.Forum, &res.Post.Thread, postTime,
 				&res.Forum.Title, &res.Forum.User, &res.Forum.Slug, &res.Forum.Posts,
 				&res.Forum.Threads); err != nil {
-			if err == sql.ErrNoRows {
+			if err == pgx.ErrNoRows {
 				return nil, post_repository.NotFound
 			}
 			return nil, err
@@ -109,7 +108,7 @@ func (r *PostRepository) Update(id int64, req *models.RequestUpdateMessage) (*mo
 	if err := r.conn.QueryRow(context.Background(), queryUpdatePost, id, req.Message).
 		Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
 			&post.IsEdited, &post.Forum, &post.Thread, postTime); err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, post_repository.NotFound
 		}
 		return nil, err

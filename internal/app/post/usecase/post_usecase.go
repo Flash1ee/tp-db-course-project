@@ -16,7 +16,7 @@ func NewPostUsecase(repo post.Repository) *PostUsecase {
 	}
 }
 
-func (u *PostUsecase) GetPost(id int64, related string) (*models.Post, error) {
+func (u *PostUsecase) GetPost(id int64, related string) (*models.ResponsePostDetail, error) {
 	return u.repo.Get(id, related)
 }
 func (u *PostUsecase) UpdatePost(id int64, req *models.RequestUpdateMessage) (*models.ResponsePost, error) {

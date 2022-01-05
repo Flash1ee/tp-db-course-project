@@ -2,7 +2,6 @@ package vote_postgresql
 
 import (
 	"context"
-	"database/sql"
 	"github.com/jackc/pgx/v4"
 	"tp-db-project/internal/app/vote/models"
 	"tp-db-project/internal/app/vote/repository"
@@ -26,7 +25,7 @@ func NewVoteRepository(conn *pgx.Conn) *VoteRepository {
 func (r *VoteRepository) Exists(nickname string, threadID int64) (bool, error) {
 	_, err := r.conn.Query(context.Background(), queryCheckExists, nickname, threadID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return false, nil
 		}
 		return false, err

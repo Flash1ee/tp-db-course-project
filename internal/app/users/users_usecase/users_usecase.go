@@ -1,7 +1,7 @@
 package users_usecase
 
 import (
-	"database/sql"
+	"github.com/jackc/pgx/v4"
 	"tp-db-project/internal/app"
 	"tp-db-project/internal/app/users"
 	"tp-db-project/internal/app/users/models"
@@ -18,7 +18,7 @@ func NewUsersUsecase(repo users.Repository) *UsersUsecase {
 }
 
 func (u *UsersUsecase) CreateUser(user *models.User) (*models.User, error) {
-	if _, err := u.repo.Get(user.Nickname); err != sql.ErrNoRows {
+	if _, err := u.repo.Get(user.Nickname); err != pgx.ErrNoRows {
 		return nil, app.GeneralError{
 			Err:         AlreadyExistsErr,
 			ExternalErr: err,
@@ -32,7 +32,9 @@ func (u *UsersUsecase) CreateUser(user *models.User) (*models.User, error) {
 func (u *UsersUsecase) GetUser(nickname string) (*models.User, error) {
 	user, err := u.repo.Get(nickname)
 	if err != nil {
-		return nil, err
+		return nil, &app.GeneralError{
+			Err: err,
+		}
 	}
 	return user, nil
 }

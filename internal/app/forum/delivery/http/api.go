@@ -1,7 +1,7 @@
 package forum_handler
 
 import (
-	"database/sql"
+	"github.com/jackc/pgx/v4"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	users_handler "tp-db-project/internal/app/users/delivery/http"
@@ -10,9 +10,9 @@ import (
 )
 
 var CodeByErrorGet = handler.CodeMap{
-	sql.ErrNoRows: {http.StatusNotFound, ForumNotFound, logrus.WarnLevel},
+	pgx.ErrNoRows: {http.StatusNotFound, ForumNotFound, logrus.WarnLevel},
 }
 var CodeByErrorPost = handler.CodeMap{
-	sql.ErrNoRows:          {http.StatusNotFound, ForumNotFound, logrus.WarnLevel},
+	pgx.ErrNoRows:          {http.StatusNotFound, ForumNotFound, logrus.WarnLevel},
 	users_usecase.NotFound: {http.StatusNotFound, users_handler.NotFound, logrus.WarnLevel},
 }

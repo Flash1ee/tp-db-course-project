@@ -22,14 +22,14 @@ const (
 )
 
 type ForumHandler struct {
-	router  *router.CustomRouter
+	router  router.Router
 	logger  *logrus.Logger
 	usecase forum.Usecase
 	handler.HelpHandlers
 	handler.BaseHandler
 }
 
-func NewForumHandler(router *router.CustomRouter, logger *logrus.Logger, uc forum.Usecase) *ForumHandler {
+func NewForumHandler(router router.Router, logger *logrus.Logger, uc forum.Usecase) *ForumHandler {
 	h := &ForumHandler{
 		router:  router,
 		logger:  logger,
@@ -42,12 +42,18 @@ func NewForumHandler(router *router.CustomRouter, logger *logrus.Logger, uc foru
 	}
 	utilitiesMiddleware := mw.NewUtilitiesMiddleware(h.logger)
 	middlewares := alice.New(context.ClearHandler, utilitiesMiddleware.UpgradeLogger, utilitiesMiddleware.CheckPanic)
-	h.router.Get("/forum/:slug/details", middlewares.ThenFunc(h.GetForumInfo))
-	h.router.Get("/forum/:slug/users", middlewares.ThenFunc(h.ForumUsers))
-	h.router.Get("/forum/:slug/threads", middlewares.ThenFunc(h.ForumThreads))
+	//h.router.Get("/forum/:slug/details", middlewares.ThenFunc(h.GetForumInfo))
+	//h.router.Get("/forum/:slug/users", middlewares.ThenFunc(h.ForumUsers))
+	//h.router.Get("/forum/:slug/threads", middlewares.ThenFunc(h.ForumThreads))
 
-	h.router.Post("/forum/:slug/create", middlewares.ThenFunc(h.CreateForumThreads))
-	h.router.Post("/forum/create", middlewares.ThenFunc(h.CreateForum))
+	//h.router.Post("/forum/create", middlewares.ThenFunc(h.CreateForum))
+	//h.router.Post("/forum/:slug/create", middlewares.ThenFunc(h.CreateForumThreads))
+
+	h.router.HandleFunc("/forum/:slug/details", middlewares.ThenFunc(h.GetForumInfo), "GET")
+	h.router.HandleFunc("/forum/:slug/users", middlewares.ThenFunc(h.ForumUsers), "GET")
+	h.router.HandleFunc("/forum/:slug/threads", middlewares.ThenFunc(h.ForumThreads), "GET")
+	h.router.HandleFunc("/forum/create", middlewares.ThenFunc(h.CreateForum), "GET")
+	h.router.HandleFunc("/forum/:slug/create", middlewares.ThenFunc(h.CreateForumThreads), "GET")
 
 	return h
 }
@@ -60,7 +66,7 @@ func (h *ForumHandler) GetForumInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slug := params.ByName("slug")
-	res, err := h.usecase.GetForumBySlag(slug)
+	res, err := h.usecase.GetForum(slug)
 	if err != nil {
 		h.UsecaseError(w, r, err, CodeByErrorGet)
 		return
