@@ -3,6 +3,7 @@ package vote_postgresql
 import (
 	"context"
 	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"tp-db-project/internal/app/vote/models"
 	"tp-db-project/internal/app/vote/repository"
 )
@@ -14,10 +15,10 @@ const (
 )
 
 type VoteRepository struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
-func NewVoteRepository(conn *pgx.Conn) *VoteRepository {
+func NewVoteRepository(conn *pgxpool.Pool) *VoteRepository {
 	return &VoteRepository{
 		conn: conn,
 	}

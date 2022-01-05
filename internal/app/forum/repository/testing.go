@@ -2,7 +2,7 @@ package repository
 
 //type Suite struct {
 //	suite.Suite
-//	DB   *pgx.Conn
+//	DB   *pgxpool.Pool
 //	Mock sqlmock.Sqlmock
 //}
 //

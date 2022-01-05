@@ -2,7 +2,7 @@ package service_postgresql
 
 import (
 	"context"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"tp-db-project/internal/app/service/models"
 )
 
@@ -15,10 +15,10 @@ const (
 )
 
 type ServiceRepository struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
-func NewServiceRepository(conn *pgx.Conn) *ServiceRepository {
+func NewServiceRepository(conn *pgxpool.Pool) *ServiceRepository {
 	return &ServiceRepository{
 		conn: conn,
 	}
@@ -30,7 +30,7 @@ func (r *ServiceRepository) Delete() error {
 }
 
 func (r *ServiceRepository) Status() (*models.ResponseService, error) {
-	var res *models.ResponseService
+	res := &models.ResponseService{}
 
 	if err := r.conn.QueryRow(context.Background(), queryCountForumPostThreadUsers).
 		Scan(&res.Forum, &res.Post, &res.Thread, &res.User); err != nil {

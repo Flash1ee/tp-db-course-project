@@ -10,6 +10,7 @@ import (
 //go:generate mockgen -destination=usecase/mocks/usecase.go -package=mock_thread -mock_names=Usecase=ThreadUsecase . Usecase
 
 type Usecase interface {
+	CreatePosts(slugOrID string, posts []*models.RequestNewPost) ([]post_models.ResponsePost, error)
 	GetThreadInfo(slugOrID string) (*models.ResponseThread, error)
 	UpdateThread(slugOrID string, req *models.RequestUpdateThread) (*models.ResponseThread, error)
 	UpdateVoice(slugOrID string, req *models2.RequestVoteUpdate) (bool, error)

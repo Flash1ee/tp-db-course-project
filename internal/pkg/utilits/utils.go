@@ -3,7 +3,7 @@ package utilits
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	"os"
@@ -12,7 +12,7 @@ import (
 )
 
 type ExpectedConnections struct {
-	SqlConnection *pgx.Conn
+	SqlConnection *pgxpool.Pool
 	PathFiles     string
 }
 
@@ -29,7 +29,7 @@ func NewLogger(config *configs.Config) (log *logrus.Logger, closeResource func()
 		currentTime.Year(), currentTime.Month(), currentTime.Day(),
 		currentTime.Hour(), currentTime.Minute(), currentTime.Second()) + ".log"
 
-	f, err := os.OpenFile(formatted, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	f, err := os.OpenFile(formatted, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0755)
 	if err != nil {
 		logrus.Fatalf("error opening file: %v", err)
 	}
@@ -41,8 +41,8 @@ func NewLogger(config *configs.Config) (log *logrus.Logger, closeResource func()
 	return logger, f.Close
 }
 
-func NewPostgresConnection(config *configs.RepositoryConnections) (db *pgx.Conn, closeResource func(ctx context.Context) error) {
-	conn, err := pgx.Connect(context.Background(), config.DataBaseUrl)
+func NewPostgresConnection(config *configs.RepositoryConnections) (db *pgxpool.Pool, closeResource func()) {
+	conn, err := pgxpool.Connect(context.Background(), config.DataBaseUrl)
 	if err != nil {
 		logrus.Fatal(err)
 	}

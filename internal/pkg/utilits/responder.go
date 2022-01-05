@@ -19,7 +19,9 @@ func (h *Responder) Error(w http.ResponseWriter, r *http.Request, code int, err 
 
 func (h *Responder) Respond(w http.ResponseWriter, r *http.Request, code int, data interface{}) {
 	encoder := json.NewEncoder(w)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
+
 	if data != nil {
 		err := encoder.Encode(data)
 		if err != nil {

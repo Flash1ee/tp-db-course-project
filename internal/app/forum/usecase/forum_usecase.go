@@ -31,7 +31,7 @@ func (u *ForumUsecase) Create(req *models.RequestCreateForum) (*models.Forum, er
 	if f, err := u.repo.GetForumBySlag(req.Slug); err == nil {
 		return f, AlreadyExists
 	}
-	if _, err := u.usersRepo.Get(req.User); err != nil {
+	if _, err := u.usersRepo.GetByNickname(req.User); err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, users_usecase.NotFound
 		}
@@ -39,7 +39,7 @@ func (u *ForumUsecase) Create(req *models.RequestCreateForum) (*models.Forum, er
 	}
 
 	if err := u.repo.Create(req); err != nil {
-		return nil, app.GeneralError{
+		return nil, &app.GeneralError{
 			Err:         InternalError,
 			ExternalErr: err,
 		}
@@ -49,7 +49,7 @@ func (u *ForumUsecase) Create(req *models.RequestCreateForum) (*models.Forum, er
 func (u *ForumUsecase) GetForum(slug string) (*models.Forum, error) {
 	res, err := u.repo.GetForumBySlag(slug)
 	if err != nil {
-		return nil, app.GeneralError{
+		return nil, &app.GeneralError{
 			Err:         ForumNotFound,
 			ExternalErr: err,
 		}
@@ -58,14 +58,14 @@ func (u *ForumUsecase) GetForum(slug string) (*models.Forum, error) {
 }
 func (u *ForumUsecase) GetForumUsers(slug string, since int, desc bool, pag *models_utilits.Pagination) ([]*models_users.User, error) {
 	if _, err := u.repo.GetForumBySlag(slug); err != nil {
-		return nil, app.GeneralError{
+		return nil, &app.GeneralError{
 			Err:         ForumNotFound,
 			ExternalErr: err,
 		}
 	}
 	res, err := u.repo.GetForumUsers(slug, since, desc, pag)
 	if err != nil {
-		return nil, app.GeneralError{
+		return nil, &app.GeneralError{
 			Err:         InternalError,
 			ExternalErr: err,
 		}
@@ -74,14 +74,14 @@ func (u *ForumUsecase) GetForumUsers(slug string, since int, desc bool, pag *mod
 }
 func (u *ForumUsecase) GetForumThreads(slug string, since int, desc bool, pag *models_utilits.Pagination) ([]*models_thread.Thread, error) {
 	if _, err := u.repo.GetForumBySlag(slug); err != nil {
-		return nil, app.GeneralError{
+		return nil, &app.GeneralError{
 			Err:         ForumNotFound,
 			ExternalErr: err,
 		}
 	}
 	res, err := u.repo.GetForumThreads(slug, since, desc, pag)
 	if err != nil {
-		return nil, app.GeneralError{
+		return nil, &app.GeneralError{
 			Err:         InternalError,
 			ExternalErr: err,
 		}
@@ -89,7 +89,7 @@ func (u *ForumUsecase) GetForumThreads(slug string, since int, desc bool, pag *m
 	return res, nil
 }
 func (u *ForumUsecase) CreateThread(forumName string, req *models.RequestCreateThread) (*models_thread.ResponseThread, error) {
-	if _, err := u.usersRepo.Get(req.Author); err != nil {
+	if _, err := u.usersRepo.GetByNickname(req.Author); err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, users_usecase.NotFound
 		}
@@ -105,7 +105,7 @@ func (u *ForumUsecase) CreateThread(forumName string, req *models.RequestCreateT
 	}
 	th, err = u.threadRepo.CreateThread(forumName, req)
 	if err != nil {
-		return nil, app.GeneralError{
+		return nil, &app.GeneralError{
 			Err:         InternalError,
 			ExternalErr: err,
 		}

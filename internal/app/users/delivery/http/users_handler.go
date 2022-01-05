@@ -4,11 +4,14 @@ import (
 	"github.com/gorilla/context"
 	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"tp-db-project/internal/app"
 	mw "tp-db-project/internal/app/middlewares"
 	"tp-db-project/internal/app/users"
 	"tp-db-project/internal/app/users/models"
+	"tp-db-project/internal/app/users/users_usecase"
 	"tp-db-project/internal/pkg/handler"
 	"tp-db-project/internal/pkg/router"
 	"tp-db-project/internal/pkg/utilits"
@@ -35,9 +38,9 @@ func NewUsersHandler(router *router.CustomRouter, logger *logrus.Logger, uc user
 	}
 	utilitiesMiddleware := mw.NewUtilitiesMiddleware(h.logger)
 	middlewares := alice.New(context.ClearHandler, utilitiesMiddleware.UpgradeLogger, utilitiesMiddleware.CheckPanic)
-	h.router.Get("/user/:nickname/create", middlewares.ThenFunc(h.CreateUserHandler))
 	h.router.Get("/user/:nickname/profile", middlewares.ThenFunc(h.GetProfileHandler))
 	h.router.Post("/user/:nickname/profile", middlewares.ThenFunc(h.UpdateProfileHandler))
+	h.router.Post("/user/:nickname/create", middlewares.ThenFunc(h.CreateUserHandler))
 
 	return h
 }
@@ -55,12 +58,20 @@ func (h *UsersHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	req.Nickname = nickname
-	user, err := h.usecase.CreateUser(req)
-	if err != nil {
-		h.UsecaseError(w, r, err, CodeByErrorGet)
+	if u, err := h.usecase.GetUser(req.Nickname, req.Email); len(u) != 0 || err != nil {
+		if err != nil {
+			h.UsecaseError(w, r, err, CodeByErrorPost)
+			return
+		}
+		h.Respond(w, r, http.StatusConflict, u)
 		return
 	}
-	h.Respond(w, r, http.StatusOK, *user)
+	user, err := h.usecase.CreateUser(req)
+	if err != nil {
+		h.UsecaseError(w, r, err, CodeByErrorPost)
+		return
+	}
+	h.Respond(w, r, http.StatusCreated, *user)
 }
 
 func (h *UsersHandler) GetProfileHandler(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +82,7 @@ func (h *UsersHandler) GetProfileHandler(w http.ResponseWriter, r *http.Request)
 	}
 	nickname := params.ByName("nickname")
 
-	user, err := h.usecase.GetUser(nickname)
+	user, err := h.usecase.GetUserByNickname(nickname)
 	if err != nil {
 		h.UsecaseError(w, r, err, CodeByErrorGet)
 		return
@@ -92,10 +103,25 @@ func (h *UsersHandler) UpdateProfileHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	req.Nickname = nickname
-	user, err := h.usecase.UpdateUser(req)
+	user, err := h.usecase.GetUserByNickname(req.Nickname)
 	if err != nil {
 		h.UsecaseError(w, r, err, CodeByErrorPost)
 		return
 	}
-	h.Respond(w, r, http.StatusOK, *user)
+	if user == nil {
+		h.Error(w, r, http.StatusNotFound, NotFound)
+		return
+	}
+	u, err := h.usecase.UpdateUser(req)
+	if err != nil {
+		if errors.Cause(err).(*app.GeneralError).Err == users_usecase.ConstraintError {
+			h.Error(w, r, http.StatusConflict, ConflictErr)
+			return
+
+		}
+		h.UsecaseError(w, r, err, CodeByErrorPost)
+		return
+	}
+	u.Nickname = nickname
+	h.Respond(w, r, http.StatusOK, *u)
 }

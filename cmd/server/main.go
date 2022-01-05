@@ -1,8 +1,8 @@
 package main
 
 import (
-	"context"
 	"flag"
+	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/sirupsen/logrus"
 	"tp-db-project/configs"
@@ -17,6 +17,7 @@ func init() {
 }
 
 func main() {
+	fmt.Println("start main")
 	flag.Parse()
 	config := configs.NewConfig()
 	_, err := toml.DecodeFile(configPath, &config)
@@ -34,11 +35,8 @@ func main() {
 
 	db, closeDbResource := utilits.NewPostgresConnection(&config.ServerRepository)
 
-	defer func(closer func(ctx context.Context) error, log *logrus.Logger) {
-		err := closer(context.Background())
-		if err != nil {
-			log.Fatal(err)
-		}
+	defer func(closer func(), log *logrus.Logger) {
+		closer()
 	}(closeDbResource, logger)
 
 	serv := server.NewServer(config,

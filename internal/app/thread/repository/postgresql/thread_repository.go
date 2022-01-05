@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"time"
 	models2 "tp-db-project/internal/app/forum/models"
 	pag_models "tp-db-project/internal/app/models"
@@ -28,15 +29,13 @@ const (
 		"WHERE slug = $1 RETURNING id, title, author, forum, message, votes, slug, created;"
 
 	queryInsertPost = "INSERT INTO post(parent, author, message, forum, thread, created) VALUES "
-	queryGetPosts   = "SELECT id, parent, author, message, is_edited, forum, thread, created " +
-		"FROM post WHERE thread = $1 "
 )
 
 type ThreadRepository struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
-func NewThreadRepository(conn *pgx.Conn) *ThreadRepository {
+func NewThreadRepository(conn *pgxpool.Pool) *ThreadRepository {
 	return &ThreadRepository{
 		conn: conn,
 	}
@@ -183,7 +182,7 @@ func (r *ThreadRepository) GetPostsByFlats(id int, since int64, desc bool, pag *
 	}
 	defer rows.Close()
 
-	var posts []post_models.ResponsePost
+	posts := make([]post_models.ResponsePost, 0, 0)
 	for rows.Next() {
 		post := post_models.ResponsePost{}
 
@@ -228,7 +227,7 @@ func (r *ThreadRepository) GetPostsByTree(id int, since int64, desc bool, pag *p
 	}
 	defer rows.Close()
 
-	var posts []post_models.ResponsePost
+	posts := make([]post_models.ResponsePost, 0, 0)
 	for rows.Next() {
 		post := post_models.ResponsePost{}
 
@@ -308,7 +307,7 @@ func (r *ThreadRepository) GetPostsByParentTree(id int, since int64, desc bool, 
 	}
 	defer rows.Close()
 
-	var posts []post_models.ResponsePost
+	posts := make([]post_models.ResponsePost, 0, 0)
 	for rows.Next() {
 		post := post_models.ResponsePost{}
 

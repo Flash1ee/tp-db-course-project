@@ -9,9 +9,11 @@ import (
 )
 
 var CodeByErrorGet = handler.CodeMap{
-	pgx.ErrNoRows: {http.StatusNotFound, NotFound, logrus.InfoLevel},
+	users_usecase.NotFound: {http.StatusNotFound, NotFound, logrus.InfoLevel},
+	pgx.ErrNoRows:          {http.StatusNotFound, NotFound, logrus.InfoLevel},
 }
 var CodeByErrorPost = handler.CodeMap{
-	pgx.ErrNoRows:                  {http.StatusNotFound, NotFound, logrus.InfoLevel},
+	users_usecase.NotFound:         {http.StatusNotFound, NotFound, logrus.InfoLevel},
+	users_usecase.ConstraintError:  {http.StatusConflict, ConflictErr, logrus.InfoLevel},
 	users_usecase.AlreadyExistsErr: {http.StatusConflict, ConflictErr, logrus.WarnLevel},
 }

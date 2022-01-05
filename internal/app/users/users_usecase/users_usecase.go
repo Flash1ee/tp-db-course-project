@@ -18,38 +18,41 @@ func NewUsersUsecase(repo users.Repository) *UsersUsecase {
 }
 
 func (u *UsersUsecase) CreateUser(user *models.User) (*models.User, error) {
-	if _, err := u.repo.Get(user.Nickname); err != pgx.ErrNoRows {
-		return nil, app.GeneralError{
-			Err:         AlreadyExistsErr,
+	if err := u.repo.Create(user); err != nil {
+		return nil, &app.GeneralError{
+			Err:         ConstraintError,
 			ExternalErr: err,
 		}
 	}
-	if err := u.repo.Create(user); err != nil {
+	return user, nil
+}
+func (u *UsersUsecase) GetUserByNickname(nickname string) (*models.User, error) {
+	user, err := u.repo.GetByNickname(nickname)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, &app.GeneralError{
+				Err:         NotFound,
+				ExternalErr: err,
+			}
+		}
 		return nil, err
 	}
 	return user, nil
 }
-func (u *UsersUsecase) GetUser(nickname string) (*models.User, error) {
-	user, err := u.repo.Get(nickname)
+func (u *UsersUsecase) GetUser(nickname, email string) ([]*models.User, error) {
+	someUsers, err := u.repo.GetByEmailOrNickname(nickname, email)
 	if err != nil {
 		return nil, &app.GeneralError{
 			Err: err,
 		}
 	}
-	return user, nil
+	return someUsers, nil
 }
 func (u *UsersUsecase) UpdateUser(user *models.User) (*models.User, error) {
-	_, err := u.repo.Get(user.Nickname)
-	if err != nil {
-		return nil, app.GeneralError{
-			Err:         NotFound,
-			ExternalErr: err,
-		}
-	}
-	user, err = u.repo.Update(user)
+	user, err := u.repo.Update(user)
 	//email already exists
 	if err != nil {
-		return nil, app.GeneralError{
+		return nil, &app.GeneralError{
 			Err:         ConstraintError,
 			ExternalErr: err,
 		}

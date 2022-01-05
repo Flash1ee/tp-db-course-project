@@ -33,7 +33,7 @@ func (u *ThreadUsecase) GetThreadInfo(slugOrID string) (*models.ResponseThread, 
 			if err == pgx.ErrNoRows {
 				return nil, NotFound
 			} else {
-				return nil, app.GeneralError{
+				return nil, &app.GeneralError{
 					Err:         InternalError,
 					ExternalErr: err,
 				}
@@ -46,7 +46,7 @@ func (u *ThreadUsecase) GetThreadInfo(slugOrID string) (*models.ResponseThread, 
 			if err == pgx.ErrNoRows {
 				return nil, NotFound
 			} else {
-				return nil, app.GeneralError{
+				return nil, &app.GeneralError{
 					Err:         InternalError,
 					ExternalErr: err,
 				}
@@ -64,7 +64,7 @@ func (u *ThreadUsecase) UpdateThread(slugOrID string, req *models.RequestUpdateT
 			if err == pgx.ErrNoRows {
 				return nil, NotFound
 			} else {
-				return nil, app.GeneralError{
+				return nil, &app.GeneralError{
 					Err:         InternalError,
 					ExternalErr: err,
 				}
@@ -77,7 +77,7 @@ func (u *ThreadUsecase) UpdateThread(slugOrID string, req *models.RequestUpdateT
 			if err == pgx.ErrNoRows {
 				return nil, NotFound
 			} else {
-				return nil, app.GeneralError{
+				return nil, &app.GeneralError{
 					Err:         InternalError,
 					ExternalErr: err,
 				}
@@ -102,7 +102,7 @@ func (u *ThreadUsecase) UpdateVoice(slugOrID string, req *models2.RequestVoteUpd
 		if err == pgx.ErrNoRows {
 			return false, NotFound
 		} else {
-			return false, app.GeneralError{
+			return false, &app.GeneralError{
 				Err:         InternalError,
 				ExternalErr: err,
 			}
@@ -112,7 +112,7 @@ func (u *ThreadUsecase) UpdateVoice(slugOrID string, req *models2.RequestVoteUpd
 	if isExists {
 		res, err := u.repoVote.Update(th.Id, req)
 		if err != nil {
-			return false, app.GeneralError{
+			return false, &app.GeneralError{
 				Err:         InternalError,
 				ExternalErr: err,
 			}
@@ -126,7 +126,7 @@ func (u *ThreadUsecase) UpdateVoice(slugOrID string, req *models2.RequestVoteUpd
 		}
 		err = u.repoVote.Create(v)
 		if err != nil {
-			return false, app.GeneralError{
+			return false, &app.GeneralError{
 				Err:         InternalError,
 				ExternalErr: err,
 			}
@@ -157,4 +157,34 @@ func (u *ThreadUsecase) GetPostsBySort(slugOrId string, sort string, since int64
 	default:
 		return u.repo.GetPostsByFlats(idInt, since, desc, pag)
 	}
+}
+func (u *ThreadUsecase) CreatePosts(slugOrID string, posts []*models.RequestNewPost) ([]post_models.ResponsePost, error) {
+	var idInt int
+	var forumName string
+	var err error
+	var th *models.ResponseThread
+	idInt, err = strconv.Atoi(slugOrID)
+	if err != nil {
+		th, err = u.repo.GetBySlug(slugOrID)
+		if err != nil {
+			return nil, err
+		} else {
+			idInt = int(th.Id)
+		}
+	} else {
+		th, err = u.repo.GetByID(int64(idInt))
+		if err != nil {
+			return nil, err
+		}
+	}
+	forumName = th.Forum
+
+	res, err := u.repo.CreatePosts(forumName, int64(idInt), posts)
+	if err != nil {
+		return nil, &app.GeneralError{
+			Err:         err,
+			ExternalErr: err,
+		}
+	}
+	return res, nil
 }

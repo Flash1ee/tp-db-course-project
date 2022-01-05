@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"time"
 	"tp-db-project/internal/app/post/models"
 	post_repository "tp-db-project/internal/app/post/repository"
@@ -25,10 +26,10 @@ const (
 )
 
 type PostRepository struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
-func NewPostRepository(conn *pgx.Conn) *PostRepository {
+func NewPostRepository(conn *pgxpool.Pool) *PostRepository {
 	return &PostRepository{
 		conn: conn,
 	}
@@ -102,7 +103,7 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 }
 
 func (r *PostRepository) Update(id int64, req *models.RequestUpdateMessage) (*models.ResponsePost, error) {
-	var post *models.ResponsePost
+	post := &models.ResponsePost{}
 
 	postTime := &time.Time{}
 	if err := r.conn.QueryRow(context.Background(), queryUpdatePost, id, req.Message).

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"time"
 	"tp-db-project/internal/app/forum/models"
 	models_utilits "tp-db-project/internal/app/models"
@@ -25,10 +26,10 @@ const (
 )
 
 type ForumRepository struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
-func NewForumRepository(conn *pgx.Conn) *ForumRepository {
+func NewForumRepository(conn *pgxpool.Pool) *ForumRepository {
 	return &ForumRepository{
 		conn: conn,
 	}
@@ -75,7 +76,7 @@ func (r *ForumRepository) GetForumUsers(slug string, since int, desc bool, pag *
 	}
 	defer rows.Close()
 
-	var res []*models_users.User
+	res := make([]*models_users.User, 0, 0)
 	for rows.Next() {
 		user := &models_users.User{}
 		if err := rows.Scan(&user.Nickname, &user.FullName, &user.About, &user.Email); err != nil {
@@ -113,7 +114,7 @@ func (r *ForumRepository) GetForumThreads(slug string, since int, desc bool, pag
 	}
 	defer rows.Close()
 
-	var res []*models_thread.Thread
+	res := make([]*models_thread.Thread, 0, 0)
 	for rows.Next() {
 		thread := &models_thread.Thread{}
 		createdTime := time.Time{}

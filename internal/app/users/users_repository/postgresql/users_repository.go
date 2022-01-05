@@ -2,13 +2,15 @@ package users_postgresql
 
 import (
 	"context"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"tp-db-project/internal/app/users/models"
 )
 
 const (
-	queryCreateUser = "INSERT INTO users(nickname, fullname, about, email) VALUES($1, $2, $3, $4)"
-	queryGetUser    = "SELECT nickname, fullname, about, email FROM users where nickname = $1"
+	queryCreateUser    = "INSERT INTO users(nickname, fullname, about, email) VALUES($1, $2, $3, $4);"
+	queryGetUser       = "SELECT nickname, fullname, about, email FROM users WHERE nickname = $1 OR email = $2;"
+	queryGetByNickname = "SELECT nickname, fullname, about, email FROM users where nickname = $1;"
+
 	queryUpdateUser = "UPDATE users SET " +
 		"fullname = COALESCE(NULLIF(TRIM($1), ''), fullname)," +
 		"about = COALESCE(NULLIF(TRIM($2), ''), about), " +
@@ -18,10 +20,10 @@ const (
 )
 
 type UsersRepository struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
-func NewUsersRepository(conn *pgx.Conn) *UsersRepository {
+func NewUsersRepository(conn *pgxpool.Pool) *UsersRepository {
 	return &UsersRepository{
 		conn: conn,
 	}
@@ -33,9 +35,9 @@ func (r *UsersRepository) Create(user *models.User) error {
 	return err
 }
 
-func (r *UsersRepository) Get(nickname string) (*models.User, error) {
+func (r *UsersRepository) GetByNickname(nickname string) (*models.User, error) {
 	user := &models.User{}
-	err := r.conn.QueryRow(context.Background(), queryGetUser, nickname).
+	err := r.conn.QueryRow(context.Background(), queryGetByNickname, nickname).
 		Scan(&user.Nickname, &user.FullName, &user.About, &user.Email)
 	if err != nil {
 		return nil, err
@@ -51,4 +53,23 @@ func (r *UsersRepository) Update(user *models.User) (*models.User, error) {
 	}
 
 	return newUser, nil
+}
+func (r *UsersRepository) GetByEmailOrNickname(nickname, email string) ([]*models.User, error) {
+	users := make([]*models.User, 0, 0)
+
+	rows, err := r.conn.Query(context.Background(), queryGetUser, nickname, email)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		user := &models.User{}
+		err = rows.Scan(&user.Nickname, &user.FullName, &user.About, &user.Email)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	return users, nil
 }

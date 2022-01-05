@@ -43,10 +43,30 @@ func NewThreadHandler(router *router.CustomRouter, logger *logrus.Logger, uc thr
 
 	h.router.Post("/thread/:slug_or_id/details", middlewares.ThenFunc(h.UpdateThread))
 	h.router.Post("/thread/:slug_or_id/vote", middlewares.ThenFunc(h.VoteThread))
-
+	h.router.Post("/thread/:slug_or_id/create", middlewares.ThenFunc(h.CreatePosts))
 	return h
 }
+func (h *ThreadHandler) CreatePosts(w http.ResponseWriter, r *http.Request) {
+	params, ok := r.Context().Value("params").(httprouter.Params)
+	if !ok || len(params) > 1 || params.ByName("slug_or_id") == "" {
+		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
+		return
+	}
+	slugOrID := params.ByName("slug_or_id")
+	var posts []*models.RequestNewPost
 
+	if err := h.GetRequestBody(w, r, &posts); err != nil {
+		h.Error(w, r, http.StatusBadRequest, InvalidBody)
+		return
+	}
+	res, err := h.usecase.CreatePosts(slugOrID, posts)
+	if err != nil {
+		h.UsecaseError(w, r, err, CodeByErrorPost)
+		return
+	}
+
+	h.Respond(w, r, http.StatusCreated, res)
+}
 func (h *ThreadHandler) ThreadInfo(w http.ResponseWriter, r *http.Request) {
 	params, ok := r.Context().Value("params").(httprouter.Params)
 	if !ok || len(params) > 1 || params.ByName("slug_or_id") == "" {
