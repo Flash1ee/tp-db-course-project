@@ -19,9 +19,9 @@ const (
 		"WHERE id = $1;"
 	queryGetThreadBySlug = "SELECT id, title, author, forum, message, votes, slug, created FROM thread " +
 		"WHERE slug = $1;"
-	queryCreateForumThreadWithTime = "INSERT INTO thread(title, author, forum, message, created) VALUES($1, $2, $3, $4, $5) " +
+	queryCreateForumThreadWithTime = "INSERT INTO thread(title, author, forum, message, slug, created) VALUES($1, $2, $3, $4, $5, $6) " +
 		"RETURNING id, title, author, forum, message, votes, slug, created;"
-	queryCreateForumThreadNoTime = "INSERT INTO thread(title, author, forum, message) VALUES($1, $2, $3, $4) " +
+	queryCreateForumThreadNoTime = "INSERT INTO thread(title, author, forum, message, slug) VALUES($1, $2, $3, $4, $5) " +
 		"RETURNING id, title, author, forum, message, votes, slug, created; "
 	queryUpdateThreadById = "UPDATE thread SET title = $2, message = $3 " +
 		"WHERE id = $1 RETURNING id, title, author, forum, message, votes, slug, created;"
@@ -41,7 +41,7 @@ func NewThreadRepository(conn *pgxpool.Pool) *ThreadRepository {
 	}
 }
 
-func (r *ThreadRepository) CreateThread(forumName string, req *models2.RequestCreateThread) (*models.ResponseThread, error) {
+func (r *ThreadRepository) CreateThread(req *models2.RequestCreateThread) (*models.ResponseThread, error) {
 	var err error
 	res := &models.ResponseThread{}
 	if req == nil {
@@ -50,15 +50,16 @@ func (r *ThreadRepository) CreateThread(forumName string, req *models2.RequestCr
 	threadTime := &time.Time{}
 
 	if req.Created == "" {
-		err = r.conn.QueryRow(context.Background(), queryCreateForumThreadNoTime, req.Title, req.Author, forumName, req.Message).
+		err = r.conn.QueryRow(context.Background(), queryCreateForumThreadNoTime, req.Title, req.Author, req.Forum, req.Message, req.Slug).
 			Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
 				&res.Message, &res.Votes, &res.Slug, threadTime)
 	} else {
-		err = r.conn.QueryRow(context.Background(), queryCreateForumThreadWithTime, req.Title, req.Author, forumName, req.Message, req.Created).
+		err = r.conn.QueryRow(context.Background(), queryCreateForumThreadWithTime, req.Title, req.Author, req.Forum, req.Message, req.Slug, req.Created).
 			Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
 				&res.Message, &res.Votes, &res.Slug, threadTime)
 	}
 
+	fmt.Printf("THREAD SLUG AFTER CREATED = %s FORUM = %s\n", res.Slug, res.Forum)
 	res.Created = strfmt.DateTime(threadTime.UTC()).String()
 
 	return res, err
@@ -66,30 +67,35 @@ func (r *ThreadRepository) CreateThread(forumName string, req *models2.RequestCr
 
 func (r *ThreadRepository) GetByID(id int64) (*models.ResponseThread, error) {
 	res := &models.ResponseThread{}
+	threadTime := &time.Time{}
+
 	if err := r.conn.QueryRow(context.Background(), queryGetThreadById, id).
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
-			&res.Message, &res.Votes, &res.Slug, &res.Created); err != nil {
+			&res.Message, &res.Votes, &res.Slug, threadTime); err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, repository.NotFound
 		}
 		return nil, err
 	}
+	res.Created = strfmt.DateTime(threadTime.UTC()).String()
 
 	return res, nil
 }
 
 func (r *ThreadRepository) GetBySlug(slug string) (*models.ResponseThread, error) {
 	res := &models.ResponseThread{}
+	threadTime := &time.Time{}
 
 	if err := r.conn.QueryRow(context.Background(), queryGetThreadBySlug, slug).
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
-			&res.Message, &res.Votes, &res.Slug, &res.Created); err != nil {
+			&res.Message, &res.Votes, &res.Slug, threadTime); err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, repository.NotFound
 		}
 
 		return nil, err
 	}
+	res.Created = strfmt.DateTime(threadTime.UTC()).String()
 
 	return res, nil
 }
@@ -125,9 +131,10 @@ func (r *ThreadRepository) UpdateBySlug(slug string, req *models.RequestUpdateTh
 func (r *ThreadRepository) CreatePosts(forum string, thread int64, posts []*models.RequestNewPost) ([]post_models.ResponsePost, error) {
 	query := queryInsertPost
 
-	newPosts := make([]post_models.ResponsePost, 0, len(posts))
-	var queryArgs []interface{}
+	newPosts := make([]post_models.ResponsePost, len(posts), len(posts))
+	queryArgs := make([]interface{}, 0, 0)
 	insertTime := strfmt.DateTime(time.Now())
+
 	for i, post := range posts {
 		newPosts[i].Parent = post.Parent
 		newPosts[i].Author = post.Author
@@ -144,7 +151,7 @@ func (r *ThreadRepository) CreatePosts(forum string, thread int64, posts []*mode
 	query = query[:len(query)-1]
 	query += " RETURNING id;"
 
-	rows, err := r.conn.Query(context.Background(), query, queryArgs)
+	rows, err := r.conn.Query(context.Background(), query, queryArgs...)
 	if err != nil {
 		return nil, err
 	}
@@ -162,29 +169,38 @@ func (r *ThreadRepository) CreatePosts(forum string, thread int64, posts []*mode
 func (r *ThreadRepository) GetPostsByFlats(id int, since int64, desc bool, pag *pag_models.Pagination) ([]post_models.ResponsePost, error) {
 	queryGetPostsByFlat := "SELECT id, parent, author, message, is_edited, forum, thread, created FROM post " +
 		"WHERE thread = $1 "
-	queryGetPostsByFlatSince := "SELECT id, parent, author, message, is_edited, forum, thread, created FROM post " +
-		"WHERE thread = $1 AND id < $2 "
 	var rows pgx.Rows
 	var err error
-	orderBy := "ORDER BY id "
-	qLimit := "LIMIT $2"
-	if desc {
-		orderBy += "DESC"
+	query := queryGetPostsByFlat
+	if since != -1 && desc {
+		query += " and id < $2"
+	} else if since != -1 && !desc {
+		query += " and id > $2"
+	} else if since != -1 {
+		query += " and id > $2"
 	}
-
-	if since == 0 {
-		rows, err = r.conn.Query(context.Background(), queryGetPostsByFlat+orderBy+qLimit, id, pag.Limit)
+	if desc {
+		query += " ORDER BY created desc, id desc"
+	} else if !desc {
+		query += " ORDER BY created asc, id"
 	} else {
-		rows, err = r.conn.Query(context.Background(), queryGetPostsByFlatSince+orderBy+qLimit, id, pag.Limit)
+		query += " ORDER BY created, id"
+	}
+	query += fmt.Sprintf(" LIMIT NULLIF(%d, 0)", pag.Limit)
+
+	if since == -1 {
+		rows, err = r.conn.Query(context.Background(), query, id)
+	} else {
+		rows, err = r.conn.Query(context.Background(), query, id, since)
 	}
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
 	posts := make([]post_models.ResponsePost, 0, 0)
 	for rows.Next() {
 		post := post_models.ResponsePost{}
+		timeTmp := &time.Time{}
 
 		err = rows.Scan(&post.Id, &post.Parent,
 			&post.Author,
@@ -192,10 +208,12 @@ func (r *ThreadRepository) GetPostsByFlats(id int, since int64, desc bool, pag *
 			&post.IsEdited,
 			&post.Forum,
 			&post.Thread,
-			&post.Created)
+			timeTmp)
 		if err != nil {
 			return nil, err
 		}
+
+		post.Created = strfmt.DateTime(timeTmp.UTC()).String()
 
 		posts = append(posts, post)
 	}
@@ -206,22 +224,43 @@ func (r *ThreadRepository) GetPostsByFlats(id int, since int64, desc bool, pag *
 func (r *ThreadRepository) GetPostsByTree(id int, since int64, desc bool, pag *pag_models.Pagination) ([]post_models.ResponsePost, error) {
 	queryGetPostsByTree := "SELECT id, parent, author, message, is_edited, forum, thread, created FROM post " +
 		"WHERE thread = $1 "
-	queryGetPostsByTreeSince := "SELECT id, parent, author, message, is_edited, forum, thread, created FROM post " +
-		"WHERE thread = $1 AND path < (SELECT path FROM post WHERE id = $2) "
+	//queryGetPostsByTreeSince := "SELECT id, parent, author, message, is_edited, forum, thread, created FROM post " +
+	//	"WHERE thread = $1 AND path < (SELECT path FROM post WHERE id = $2) "
 	var rows pgx.Rows
 	var err error
-	orderBy := "ORDER BY path %s, id %s"
-	qLimit := "LIMIT $2"
+	//orderBy := "ORDER BY path %s, id %s"
+	//qLimit := "LIMIT $2"
+
+	query := queryGetPostsByTree
+	if since != -1 && desc {
+		query += " and path < "
+	} else if since != -1 && !desc {
+		query += " and path > "
+	} else if since != -1 {
+		query += " and path > "
+	}
+	if since != -1 {
+		query += fmt.Sprintf(` (SELECT path FROM post WHERE id = %d) `, since)
+	}
 	if desc {
-		orderBy = fmt.Sprintf(orderBy, "DESC", "DESC")
+		query += " ORDER BY path desc"
+	} else if !desc {
+		query += " ORDER BY path asc, id"
 	} else {
-		orderBy = fmt.Sprintf(orderBy, "ASC", "ASC")
+		query += " ORDER BY path, id"
 	}
-	if since == 0 {
-		rows, err = r.conn.Query(context.Background(), queryGetPostsByTree+orderBy+qLimit, id, pag.Limit)
-	} else {
-		rows, err = r.conn.Query(context.Background(), queryGetPostsByTreeSince+orderBy+qLimit, id, since, pag.Limit)
-	}
+	query += fmt.Sprintf(" LIMIT NULLIF(%d, 0)", pag.Limit)
+
+	//if desc {
+	//	orderBy = fmt.Sprintf(orderBy, "DESC", "DESC")
+	//} else {
+	//	orderBy = fmt.Sprintf(orderBy, "ASC", "ASC")
+	//}
+	//if since == -1 {
+	rows, err = r.conn.Query(context.Background(), query, id)
+	//} else {
+	//	rows, err = r.conn.Query(context.Background(), query, id, since)
+	//}
 	if err != nil {
 		return nil, err
 	}
@@ -230,6 +269,7 @@ func (r *ThreadRepository) GetPostsByTree(id int, since int64, desc bool, pag *p
 	posts := make([]post_models.ResponsePost, 0, 0)
 	for rows.Next() {
 		post := post_models.ResponsePost{}
+		timeTmp := &time.Time{}
 
 		err = rows.Scan(
 			&post.Id,
@@ -239,10 +279,11 @@ func (r *ThreadRepository) GetPostsByTree(id int, since int64, desc bool, pag *p
 			&post.IsEdited,
 			&post.Forum,
 			&post.Thread,
-			&post.Created)
+			timeTmp)
 		if err != nil {
 			return nil, err
 		}
+		post.Created = strfmt.DateTime(timeTmp.UTC()).String()
 
 		posts = append(posts, post)
 	}
@@ -265,18 +306,19 @@ func (r *ThreadRepository) GetPostsByParentTree(id int, since int64, desc bool, 
 	//	orderBy = fmt.Sprintf(orderBy, "ASC", "ASC")
 	//
 	//}
-	if since == 0 {
+
+	if since == -1 {
 		if desc {
 			rows, err = r.conn.Query(context.Background(), `
 					SELECT id, parent, author, message, is_edited, forum, thread, created FROM post
-					WHERE path[1] IN (SELECT id FROM post WHERE thread = $1 AND parent IS NULL ORDER BY id DESC LIMIT $2)
+					WHERE path[1] IN (SELECT id FROM post WHERE thread = $1 AND parent = 0 ORDER BY id DESC LIMIT $2)
 					ORDER BY path[1] DESC, path ASC, id ASC;`,
 				id,
 				pag.Limit)
 		} else {
 			rows, err = r.conn.Query(context.Background(), `
 					SELECT id, parent, author, message, is_edited, forum, thread, created FROM post
-					WHERE path[1] IN (SELECT id FROM post WHERE thread = $1 AND parent IS NULL ORDER BY id ASC LIMIT $2)
+					WHERE path[1] IN (SELECT id FROM post WHERE thread = $1 AND parent = 0 ORDER BY id ASC LIMIT $2)
 					ORDER BY path ASC, id ASC;`,
 				id,
 				pag.Limit)
@@ -285,7 +327,7 @@ func (r *ThreadRepository) GetPostsByParentTree(id int, since int64, desc bool, 
 		if desc {
 			rows, err = r.conn.Query(context.Background(), `
 					SELECT id, parent, author, message, is_edited, forum, thread, created FROM post
-					WHERE path[1] IN (SELECT id FROM post WHERE thread = $1 AND parent IS NULL AND path[1] <
+					WHERE path[1] IN (SELECT id FROM post WHERE thread = $1 AND parent = 0 AND path[1] <
 					(SELECT path[1] FROM post WHERE id = $2) ORDER BY id DESC LIMIT $3)
 					ORDER BY path[1] DESC, path ASC, id ASC;`,
 				id,
@@ -294,7 +336,7 @@ func (r *ThreadRepository) GetPostsByParentTree(id int, since int64, desc bool, 
 		} else {
 			rows, err = r.conn.Query(context.Background(), `
 					SELECT id, parent, author, message, is_edited, forum, thread, created FROM post
-					WHERE path[1] IN (SELECT id FROM post WHERE thread = $1 AND parent IS NULL AND path[1] >
+					WHERE path[1] IN (SELECT id FROM post WHERE thread = $1 AND parent = 0 AND path[1] >
 					(SELECT path[1] FROM post WHERE id = $2) ORDER BY id ASC LIMIT $3) 
 					ORDER BY path ASC, id ASC;`,
 				id,
@@ -310,6 +352,7 @@ func (r *ThreadRepository) GetPostsByParentTree(id int, since int64, desc bool, 
 	posts := make([]post_models.ResponsePost, 0, 0)
 	for rows.Next() {
 		post := post_models.ResponsePost{}
+		timeTmp := &time.Time{}
 
 		err = rows.Scan(
 			&post.Id,
@@ -319,10 +362,12 @@ func (r *ThreadRepository) GetPostsByParentTree(id int, since int64, desc bool, 
 			&post.IsEdited,
 			&post.Forum,
 			&post.Thread,
-			&post.Created)
+			timeTmp)
 		if err != nil {
 			return nil, err
 		}
+
+		post.Created = strfmt.DateTime(timeTmp.UTC()).String()
 
 		posts = append(posts, post)
 	}

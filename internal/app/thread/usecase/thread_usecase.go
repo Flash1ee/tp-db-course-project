@@ -86,7 +86,7 @@ func (u *ThreadUsecase) UpdateThread(slugOrID string, req *models.RequestUpdateT
 		return res, nil
 	}
 }
-func (u *ThreadUsecase) UpdateVoice(slugOrID string, req *models2.RequestVoteUpdate) (bool, error) {
+func (u *ThreadUsecase) UpdateVoice(slugOrID string, req *models2.RequestVoteUpdate) (*models.ResponseThread, error) {
 	var err error
 	var th *models.ResponseThread
 	ID, err := strconv.Atoi(slugOrID)
@@ -100,9 +100,9 @@ func (u *ThreadUsecase) UpdateVoice(slugOrID string, req *models2.RequestVoteUpd
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return false, NotFound
+			return nil, NotFound
 		} else {
-			return false, &app.GeneralError{
+			return nil, &app.GeneralError{
 				Err:         InternalError,
 				ExternalErr: err,
 			}
@@ -110,14 +110,17 @@ func (u *ThreadUsecase) UpdateVoice(slugOrID string, req *models2.RequestVoteUpd
 	}
 	isExists, err := u.repoVote.Exists(req.Nickname, th.Id)
 	if isExists {
-		res, err := u.repoVote.Update(th.Id, req)
+		ok, err := u.repoVote.Update(th.Id, req)
 		if err != nil {
-			return false, &app.GeneralError{
+			return nil, &app.GeneralError{
 				Err:         InternalError,
 				ExternalErr: err,
 			}
 		}
-		return res, nil
+		if ok {
+			th.Votes += req.Voice * 2
+		}
+		return th, nil
 	} else {
 		v := &models2.Vote{
 			Voice:    req.Voice,
@@ -126,12 +129,13 @@ func (u *ThreadUsecase) UpdateVoice(slugOrID string, req *models2.RequestVoteUpd
 		}
 		err = u.repoVote.Create(v)
 		if err != nil {
-			return false, &app.GeneralError{
+			return nil, &app.GeneralError{
 				Err:         InternalError,
 				ExternalErr: err,
 			}
 		}
-		return true, nil
+		th.Votes += req.Voice
+		return th, nil
 	}
 }
 func (u *ThreadUsecase) GetPostsBySort(slugOrId string, sort string, since int64, desc bool, pag *pag_models.Pagination) ([]post_models.ResponsePost, error) {

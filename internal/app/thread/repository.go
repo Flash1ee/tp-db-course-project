@@ -10,7 +10,7 @@ import (
 //go:generate mockgen -destination=mocks/repository.go -package=mock_thread -mock_names=Repository=ThreadRepository . Repository
 
 type Repository interface {
-	CreateThread(forumName string, req *models2.RequestCreateThread) (*models.ResponseThread, error)
+	CreateThread(req *models2.RequestCreateThread) (*models.ResponseThread, error)
 	GetByID(id int64) (*models.ResponseThread, error)
 	GetBySlug(slug string) (*models.ResponseThread, error)
 	UpdateByID(id int64, req *models.RequestUpdateThread) (*models.ResponseThread, error)

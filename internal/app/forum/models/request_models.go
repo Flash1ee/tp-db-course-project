@@ -10,5 +10,7 @@ type RequestCreateThread struct {
 	Title   string `json:"title"`
 	Author  string `json:"author"`
 	Message string `json:"message"`
+	Forum   string `json:"forum,omitempty"`
+	Slug    string `json:"slug,omitempty"`
 	Created string `json:"created"`
 }

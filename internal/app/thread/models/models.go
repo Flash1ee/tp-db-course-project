@@ -6,6 +6,6 @@ type Thread struct {
 	Forum   string `json:"forum"`
 	Message string `json:"message"`
 	Votes   int64  `json:"votes"`
-	Slug    string `json:"slug"`
+	Slug    string `json:"slug,omitempty"`
 	Created string `json:"created"`
 }

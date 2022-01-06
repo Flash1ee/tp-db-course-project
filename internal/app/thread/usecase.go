@@ -13,6 +13,6 @@ type Usecase interface {
 	CreatePosts(slugOrID string, posts []*models.RequestNewPost) ([]post_models.ResponsePost, error)
 	GetThreadInfo(slugOrID string) (*models.ResponseThread, error)
 	UpdateThread(slugOrID string, req *models.RequestUpdateThread) (*models.ResponseThread, error)
-	UpdateVoice(slugOrID string, req *models2.RequestVoteUpdate) (bool, error)
+	UpdateVoice(slugOrID string, req *models2.RequestVoteUpdate) (*models.ResponseThread, error)
 	GetPostsBySort(slugOrId string, sort string, since int64, desc bool, pag *pag_models.Pagination) ([]post_models.ResponsePost, error)
 }

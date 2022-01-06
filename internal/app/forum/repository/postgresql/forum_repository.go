@@ -3,6 +3,7 @@ package forum_postgresql
 import (
 	"context"
 	"fmt"
+	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"time"
@@ -20,7 +21,7 @@ const (
 		"JOIN thread t ON forum.slug = t.forum JOIN post p ON t.id = p.thread " +
 		"JOIN users u ON (p.author = u.nickname OR t.author = u.nickname) " +
 		"WHERE forum.slug = $1 "
-	queryGetForumThreads = "SELECT t.title, t.author, t.forum, t.message, t.votes, t.slug, t.created FROM threads as t " +
+	queryGetForumThreads = "SELECT t.id, t.title, t.author, t.forum, t.message, t.votes, t.slug, t.created FROM thread as t " +
 		"LEFT JOIN forum f on t.forum = f.slug " +
 		"WHERE f.slug = $1 "
 )
@@ -52,7 +53,7 @@ func (r *ForumRepository) GetForumBySlag(slag string) (*models.Forum, error) {
 
 func (r *ForumRepository) GetForumUsers(slug string, since int, desc bool, pag *models_utilits.Pagination) ([]*models_users.User, error) {
 	orderBy := "ORDER BY u.nickname "
-	querySince := "AND u.nickname > $2"
+	querySince := " AND u.nickname > $2 "
 	query := queryGetForumUsers
 	limit := pag.Limit
 	var rows pgx.Rows
@@ -62,7 +63,7 @@ func (r *ForumRepository) GetForumUsers(slug string, since int, desc bool, pag *
 		orderBy += "DESC"
 	}
 	if limit > 0 {
-		orderBy += fmt.Sprintf("LIMIT %d", pag.Limit)
+		orderBy += fmt.Sprintf(" LIMIT %d", pag.Limit)
 	}
 	if since != -1 {
 		query = query + querySince + orderBy
@@ -87,9 +88,9 @@ func (r *ForumRepository) GetForumUsers(slug string, since int, desc bool, pag *
 
 	return res, nil
 }
-func (r *ForumRepository) GetForumThreads(slug string, since int, desc bool, pag *models_utilits.Pagination) ([]*models_thread.Thread, error) {
+func (r *ForumRepository) GetForumThreads(forumSlug string, sinceDate string, desc bool, pag *models_utilits.Pagination) ([]*models_thread.ResponseThread, error) {
 	orderBy := "ORDER BY t.created "
-	querySince := "AND t.created > $2"
+	querySince := " AND t.created >= $2 "
 	query := queryGetForumThreads
 	limit := pag.Limit
 
@@ -100,27 +101,34 @@ func (r *ForumRepository) GetForumThreads(slug string, since int, desc bool, pag
 		orderBy += "DESC"
 	}
 	if limit > 0 {
-		orderBy += fmt.Sprintf("LIMIT %d", pag.Limit)
+		orderBy += fmt.Sprintf(" LIMIT %d", pag.Limit)
 	}
-	if since != -1 {
+
+	if sinceDate != "" && desc {
+		querySince = " and t.created <= $2 "
+	} else if sinceDate != "" && !desc {
+		querySince = " and t.created >= $2 "
+	}
+
+	if sinceDate != "" {
 		query = query + querySince + orderBy
-		rows, err = r.conn.Query(context.Background(), query, slug, since)
+		rows, err = r.conn.Query(context.Background(), query, forumSlug, sinceDate)
 	} else {
 		query = query + orderBy
-		rows, err = r.conn.Query(context.Background(), query, slug)
+		rows, err = r.conn.Query(context.Background(), query, forumSlug)
 	}
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
-	res := make([]*models_thread.Thread, 0, 0)
+	res := make([]*models_thread.ResponseThread, 0, 0)
 	for rows.Next() {
-		thread := &models_thread.Thread{}
+		thread := &models_thread.ResponseThread{}
 		createdTime := time.Time{}
-		if err := rows.Scan(&thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &createdTime); err != nil {
+		if err := rows.Scan(&thread.Id, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &createdTime); err != nil {
 			return nil, err
 		}
+		thread.Created = strfmt.DateTime(createdTime.UTC()).String()
 		res = append(res, thread)
 	}
 

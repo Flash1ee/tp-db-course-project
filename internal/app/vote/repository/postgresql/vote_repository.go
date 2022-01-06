@@ -11,7 +11,7 @@ import (
 const (
 	queryCreateVote  = "INSERT INTO vote(nickname, thread_id, voice) VALUES($1, $2, $3);"
 	queryUpdateVote  = "UPDATE vote SET voice = $3 WHERE thread_id = $1 and nickname = $2 and voice != $3;"
-	queryCheckExists = "SELECT id from vote where nickname = $1 and thread_id = $2;"
+	queryCheckExists = "SELECT voice from vote where nickname = $1 and thread_id = $2;"
 )
 
 type VoteRepository struct {
@@ -24,7 +24,9 @@ func NewVoteRepository(conn *pgxpool.Pool) *VoteRepository {
 	}
 }
 func (r *VoteRepository) Exists(nickname string, threadID int64) (bool, error) {
-	_, err := r.conn.Query(context.Background(), queryCheckExists, nickname, threadID)
+	voice := 0
+	err := r.conn.QueryRow(context.Background(), queryCheckExists, nickname, threadID).
+		Scan(&voice)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return false, nil

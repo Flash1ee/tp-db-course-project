@@ -9,6 +9,7 @@ import (
 	"strconv"
 	mw "tp-db-project/internal/app/middlewares"
 	models3 "tp-db-project/internal/app/models"
+	models4 "tp-db-project/internal/app/post/models"
 	"tp-db-project/internal/app/thread"
 	"tp-db-project/internal/app/thread/models"
 	models2 "tp-db-project/internal/app/vote/models"
@@ -59,6 +60,10 @@ func (h *ThreadHandler) CreatePosts(w http.ResponseWriter, r *http.Request) {
 		h.Error(w, r, http.StatusBadRequest, InvalidBody)
 		return
 	}
+	if len(posts) == 0 {
+		h.Respond(w, r, http.StatusCreated, []models4.ResponsePost{})
+		return
+	}
 	res, err := h.usecase.CreatePosts(slugOrID, posts)
 	if err != nil {
 		h.UsecaseError(w, r, err, CodeByErrorPost)
@@ -90,10 +95,10 @@ func (h *ThreadHandler) ThreadPosts(w http.ResponseWriter, r *http.Request) {
 	}
 	var err error
 	slugOrID := params.ByName("slug_or_id")
-	limit := params.ByName("limit")
-	since := params.ByName("since")
-	sort := params.ByName("sort")
-	desc := params.ByName("desc")
+	limit := r.URL.Query().Get("limit")
+	since := r.URL.Query().Get("since")
+	sort := r.URL.Query().Get("sort")
+	desc := r.URL.Query().Get("desc")
 
 	limitInt := 100
 	sinceInt := 0
@@ -106,12 +111,21 @@ func (h *ThreadHandler) ThreadPosts(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if since != "" {
-		if sinceInt, err = strconv.Atoi(since); err != nil {
+	if since == "" {
+		sinceInt = -1
+	} else {
+		sinceInt, err = strconv.Atoi(since)
+		if err != nil {
 			h.Error(w, r, http.StatusBadRequest, InvalidArgument)
 			return
 		}
 	}
+	//if since != "" {
+	//	if sinceInt, err = strconv.Atoi(since); err != nil {
+	//		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
+	//		return
+	//	}
+	//}
 	if sort != "flat" && sort != "tree" && sort != "parent_tree" &&
 		sort != "" {
 		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
@@ -120,7 +134,7 @@ func (h *ThreadHandler) ThreadPosts(w http.ResponseWriter, r *http.Request) {
 
 	if desc == "true" {
 		descBool = true
-	} else if desc != "false" {
+	} else if desc != "false" && desc != "" {
 		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
 		return
 	}
@@ -170,16 +184,16 @@ func (h *ThreadHandler) VoteThread(w http.ResponseWriter, r *http.Request) {
 		h.Error(w, r, http.StatusBadRequest, InvalidVoice)
 		return
 	}
-	_, err := h.usecase.UpdateVoice(slugOrID, req)
+	th, err := h.usecase.UpdateVoice(slugOrID, req)
 	if err != nil {
 		h.UsecaseError(w, r, err, CodeByErrorPost)
 		return
 	}
-	threadInfo, err := h.usecase.GetThreadInfo(slugOrID)
-	if err != nil {
-		h.UsecaseError(w, r, err, CodeByErrorGet)
-		return
-	}
-	h.Respond(w, r, http.StatusOK, *threadInfo)
+	//threadInfo, err := h.usecase.GetThreadInfo(slugOrID)
+	//if err != nil {
+	//	h.UsecaseError(w, r, err, CodeByErrorGet)
+	//	return
+	//}
+	h.Respond(w, r, http.StatusOK, *th)
 
 }
