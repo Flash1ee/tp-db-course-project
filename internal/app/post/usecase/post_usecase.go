@@ -20,8 +20,12 @@ func (u *PostUsecase) GetPost(id int64, related string) (*models.ResponsePostDet
 	return u.repo.Get(id, related)
 }
 func (u *PostUsecase) UpdatePost(id int64, req *models.RequestUpdateMessage) (*models.ResponsePost, error) {
-	if _, err := u.repo.Get(id, ""); err != nil {
+	if p, err := u.repo.Get(id, ""); err != nil {
 		return nil, post_repository.NotFound
+	} else {
+		if req.Message == p.Post.Message {
+			req.Message = ""
+		}
 	}
 	return u.repo.Update(id, req)
 }

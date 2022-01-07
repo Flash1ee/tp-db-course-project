@@ -78,11 +78,11 @@ func (s *Server) Start() error {
 
 	s.logger.Info("Server start")
 	server := http.NewServeMux()
-	server.Handle("/forum/", routerForum)
-	server.Handle("/thread/", router)
-	server.Handle("/service/", router)
-	server.Handle("/user/", router)
-	server.Handle("/post/", router)
+	server.Handle("/api/forum/", routerForum)
+	server.Handle("/api/thread/", router)
+	server.Handle("/api/service/", router)
+	server.Handle("/api/user/", router)
+	server.Handle("/api/post/", router)
 
 	return http.ListenAndServe(s.config.BindAddr, server)
 }

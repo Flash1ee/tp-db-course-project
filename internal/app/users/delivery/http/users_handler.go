@@ -38,9 +38,9 @@ func NewUsersHandler(router *router.CustomRouter, logger *logrus.Logger, uc user
 	}
 	utilitiesMiddleware := mw.NewUtilitiesMiddleware(h.logger)
 	middlewares := alice.New(context.ClearHandler, utilitiesMiddleware.UpgradeLogger, utilitiesMiddleware.CheckPanic)
-	h.router.Get("/user/:nickname/profile", middlewares.ThenFunc(h.GetProfileHandler))
-	h.router.Post("/user/:nickname/profile", middlewares.ThenFunc(h.UpdateProfileHandler))
-	h.router.Post("/user/:nickname/create", middlewares.ThenFunc(h.CreateUserHandler))
+	h.router.Get("/api/user/:nickname/profile", middlewares.ThenFunc(h.GetProfileHandler))
+	h.router.Post("/api/user/:nickname/profile", middlewares.ThenFunc(h.UpdateProfileHandler))
+	h.router.Post("/api/user/:nickname/create", middlewares.ThenFunc(h.CreateUserHandler))
 
 	return h
 }

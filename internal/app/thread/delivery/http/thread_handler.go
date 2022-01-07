@@ -41,12 +41,12 @@ func NewThreadHandler(router *router.CustomRouter, logger *logrus.Logger, uc thr
 	}
 	utilitiesMiddleware := mw.NewUtilitiesMiddleware(h.logger)
 	middlewares := alice.New(context.ClearHandler, utilitiesMiddleware.UpgradeLogger, utilitiesMiddleware.CheckPanic)
-	h.router.Get("/thread/:slug_or_id/details", middlewares.ThenFunc(h.ThreadInfo))
-	h.router.Get("/thread/:slug_or_id/posts", middlewares.ThenFunc(h.ThreadPosts))
+	h.router.Get("/api/thread/:slug_or_id/details", middlewares.ThenFunc(h.ThreadInfo))
+	h.router.Get("/api/thread/:slug_or_id/posts", middlewares.ThenFunc(h.ThreadPosts))
 
-	h.router.Post("/thread/:slug_or_id/details", middlewares.ThenFunc(h.UpdateThread))
-	h.router.Post("/thread/:slug_or_id/vote", middlewares.ThenFunc(h.VoteThread))
-	h.router.Post("/thread/:slug_or_id/create", middlewares.ThenFunc(h.CreatePosts))
+	h.router.Post("/api/thread/:slug_or_id/details", middlewares.ThenFunc(h.UpdateThread))
+	h.router.Post("/api/thread/:slug_or_id/vote", middlewares.ThenFunc(h.VoteThread))
+	h.router.Post("/api/thread/:slug_or_id/create", middlewares.ThenFunc(h.CreatePosts))
 	return h
 }
 func (h *ThreadHandler) CreatePosts(w http.ResponseWriter, r *http.Request) {

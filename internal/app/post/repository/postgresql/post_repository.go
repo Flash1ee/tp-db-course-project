@@ -2,10 +2,10 @@ package post_postgresql
 
 import (
 	"context"
-	"fmt"
 	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"strings"
 	"time"
 	models4 "tp-db-project/internal/app/forum/models"
 	"tp-db-project/internal/app/post/models"
@@ -17,6 +17,8 @@ import (
 const (
 	queryCheckPostParent = "SELECT thread from post where id = $1;"
 	queryUpdatePost      = "UPDATE post SET message = $2, is_edited = true WHERE id = $1 " +
+		"RETURNING id, parent, author, message, is_edited, forum, thread, created;"
+	queryUpdatePostNoEdit = "UPDATE post SET is_edited = false WHERE id = $1 " +
 		"RETURNING id, parent, author, message, is_edited, forum, thread, created;"
 	queryGetPost       = "SELECT id, parent, author, message, is_edited, forum, thread, created from post WHERE id = $1;"
 	queryGetPostAuthor = "SELECT post.id, post.parent, post.author, post.message, post.is_edited, post.forum, post.thread, post.created, " +
@@ -45,93 +47,95 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 	res := &models.ResponsePostDetail{}
 
 	postTime := &time.Time{}
-	switch related {
-	case "":
-		post := &models.ResponsePost{}
-		if err = r.conn.QueryRow(context.Background(), queryGetPost, id).
-			Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
-				&post.IsEdited, &post.Forum, &post.Thread, postTime); err != nil {
-			if err == pgx.ErrNoRows {
-				return nil, post_repository.NotFound
+	for _, arg := range strings.Split(related, ",") {
+		switch arg {
+		case "":
+			post := &models.ResponsePost{}
+			if err = r.conn.QueryRow(context.Background(), queryGetPost, id).
+				Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
+					&post.IsEdited, &post.Forum, &post.Thread, postTime); err != nil {
+				if err == pgx.ErrNoRows {
+					return nil, post_repository.NotFound
+				}
+
+				return nil, err
+
 			}
 
-			return nil, err
+			//fmt.Println("POST TIME", postTime)
 
-		}
+			//post.Created = strfmt.DateTime(postTime.UTC()).String()
+			post.Created = postTime.UTC()
+			//fmt.Println("POST TIME", post.Created)
 
-		fmt.Println("POST TIME", postTime)
-
-		//post.Created = strfmt.DateTime(postTime.UTC()).String()
-		post.Created = postTime.UTC()
-		fmt.Println("POST TIME", post.Created)
-
-		res.Post = post
-	case "user":
-		post := &models.ResponsePost{}
-		author := &models2.ResponseUser{}
-		if err = r.conn.QueryRow(context.Background(), queryGetPostAuthor, id).
-			Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
-				&post.IsEdited, &post.Forum, &post.Thread, postTime,
-				&author.Nickname, &author.FullName, &author.About, &author.Email); err != nil {
-			if err == pgx.ErrNoRows {
-				return nil, post_repository.NotFound
+			res.Post = post
+		case "user":
+			post := &models.ResponsePost{}
+			author := &models2.ResponseUser{}
+			if err = r.conn.QueryRow(context.Background(), queryGetPostAuthor, id).
+				Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
+					&post.IsEdited, &post.Forum, &post.Thread, postTime,
+					&author.Nickname, &author.FullName, &author.About, &author.Email); err != nil {
+				if err == pgx.ErrNoRows {
+					return nil, post_repository.NotFound
+				}
+				return nil, err
 			}
-			return nil, err
-		}
-		//post.Created = postTime.UTC().String()
+			//post.Created = postTime.UTC().String()
 
-		post.Created = postTime.UTC()
-		res.Post = post
-		res.Author = author
+			post.Created = postTime.UTC()
+			res.Post = post
+			res.Author = author
 
-	case "thread":
-		post := &models.ResponsePost{}
-		thread := &models3.ResponseThread{}
+		case "thread":
+			post := &models.ResponsePost{}
+			thread := &models3.ResponseThread{}
 
-		threadTime := &time.Time{}
-		if err = r.conn.QueryRow(context.Background(), queryGetPostThread, id).
-			Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
-				&post.IsEdited, &post.Forum, &post.Thread, postTime,
-				&thread.Id, &thread.Title, &thread.Author, &thread.Forum,
-				&thread.Message, &thread.Votes, &thread.Slug, threadTime); err != nil {
-			if err == pgx.ErrNoRows {
-				return nil, post_repository.NotFound
+			threadTime := &time.Time{}
+			if err = r.conn.QueryRow(context.Background(), queryGetPostThread, id).
+				Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
+					&post.IsEdited, &post.Forum, &post.Thread, postTime,
+					&thread.Id, &thread.Title, &thread.Author, &thread.Forum,
+					&thread.Message, &thread.Votes, &thread.Slug, threadTime); err != nil {
+				if err == pgx.ErrNoRows {
+					return nil, post_repository.NotFound
+				}
+				return nil, err
 			}
-			return nil, err
-		}
-		//post.Created = strfmt.DateTime(postTime.UTC())
-		post.Created = postTime.UTC()
+			//post.Created = strfmt.DateTime(postTime.UTC())
+			post.Created = postTime.UTC()
 
-		//post.Created = strfmt.DateTime(postTime.UTC()).String()
-		thread.Created = strfmt.DateTime(threadTime.UTC()).String()
+			//post.Created = strfmt.DateTime(postTime.UTC()).String()
+			thread.Created = strfmt.DateTime(threadTime.UTC()).String()
 
-		res.Post = post
-		res.Thread = thread
+			res.Post = post
+			res.Thread = thread
 
-	case "forum":
-		post := &models.ResponsePost{}
-		forum := &models4.ResponseForum{}
-		if err = r.conn.QueryRow(context.Background(), queryGetPostForum, id).
-			Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
-				&post.IsEdited, &post.Forum, &post.Thread, postTime,
-				&forum.Title, &forum.User, &forum.Slug, &forum.Posts,
-				&forum.Threads); err != nil {
-			if err == pgx.ErrNoRows {
-				return nil, post_repository.NotFound
+		case "forum":
+			post := &models.ResponsePost{}
+			forum := &models4.ResponseForum{}
+			if err = r.conn.QueryRow(context.Background(), queryGetPostForum, id).
+				Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
+					&post.IsEdited, &post.Forum, &post.Thread, postTime,
+					&forum.Title, &forum.User, &forum.Slug, &forum.Posts,
+					&forum.Threads); err != nil {
+				if err == pgx.ErrNoRows {
+					return nil, post_repository.NotFound
+				}
+				return nil, err
 			}
-			return nil, err
+
+			//post.Created = strfmt.DateTime(postTime.UTC())
+			//
+			post.Created = postTime.UTC()
+
+			//post.Created = strfmt.DateTime(postTime.UTC()).String()
+
+			res.Post = post
+			res.Forum = forum
+		default:
+			return nil, post_repository.DefaultErrDB
 		}
-
-		//post.Created = strfmt.DateTime(postTime.UTC())
-		//
-		post.Created = postTime.UTC()
-
-		//post.Created = strfmt.DateTime(postTime.UTC()).String()
-
-		res.Post = post
-		res.Forum = forum
-	default:
-		return nil, post_repository.DefaultErrDB
 	}
 
 	return res, nil
@@ -139,21 +143,29 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 
 func (r *PostRepository) Update(id int64, req *models.RequestUpdateMessage) (*models.ResponsePost, error) {
 	post := &models.ResponsePost{}
-
 	postTime := &time.Time{}
-	if err := r.conn.QueryRow(context.Background(), queryUpdatePost, id, req.Message).
-		Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
-			&post.IsEdited, &post.Forum, &post.Thread, postTime); err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, post_repository.NotFound
-		}
-		return nil, err
-	}
-	//post.Created = strfmt.DateTime(postTime.UTC())
-	//
-	post.Created = postTime.UTC()
 
-	//post.Created = strfmt.DateTime(postTime.UTC()).String()
+	if req.Message == "" {
+		if err := r.conn.QueryRow(context.Background(), queryUpdatePostNoEdit, id).
+			Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
+				&post.IsEdited, &post.Forum, &post.Thread, postTime); err != nil {
+			if err == pgx.ErrNoRows {
+				return nil, post_repository.NotFound
+			}
+			return nil, err
+		}
+	} else {
+		if err := r.conn.QueryRow(context.Background(), queryUpdatePost, id, req.Message).
+			Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
+				&post.IsEdited, &post.Forum, &post.Thread, postTime); err != nil {
+			if err == pgx.ErrNoRows {
+				return nil, post_repository.NotFound
+			}
+			return nil, err
+		}
+	}
+
+	post.Created = postTime.UTC()
 
 	return post, nil
 }

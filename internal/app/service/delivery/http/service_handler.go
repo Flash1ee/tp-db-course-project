@@ -33,8 +33,8 @@ func NewServiceHandler(router *router.CustomRouter, logger *logrus.Logger, uc se
 	}
 	utilitiesMiddleware := mw.NewUtilitiesMiddleware(h.logger)
 	middlewares := alice.New(context.ClearHandler, utilitiesMiddleware.UpgradeLogger, utilitiesMiddleware.CheckPanic)
-	h.router.Get("/service/status", middlewares.ThenFunc(h.StatusHandler))
-	h.router.Post("/service/clear", middlewares.ThenFunc(h.ClearHandler))
+	h.router.Get("/api/service/status", middlewares.ThenFunc(h.StatusHandler))
+	h.router.Post("/api/service/clear", middlewares.ThenFunc(h.ClearHandler))
 
 	return h
 }

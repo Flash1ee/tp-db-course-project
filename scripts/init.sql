@@ -162,3 +162,23 @@ CREATE TRIGGER update_users_forum
     FOR EACH ROW
 EXECUTE PROCEDURE upd_user_forum();
 
+-- -
+create index if not exists post_path_parent on post ((path[1]));
+create index if not exists post_thread_thread_id on post (thread, id);
+create index if not exists post_path_id on post (id, (path[1]));
+create index if not exists post_parent on post (thread, id, (path[1]), parent);
+create index if not exists post_sorting on post ((path[1]) desc, path, id);
+create index if not exists post_thread on post (thread);
+create index if not exists post_thread_path_id on post (thread, path, id);
+-----------
+create index if not exists user_nickname_hash on users using hash (nickname);
+create index if not exists user_all on users  (nickname, fullname, about, email);
+-----------
+create index if not exists forum_slug on forum using hash (slug);
+-----------
+create unique index if not exists votes on vote (nickname, thread_id, voice);
+-----------
+create index if not exists th_slug_hash on thread using hash (slug);
+create index if not exists th_user on thread using hash (author);
+create index if not exists th_created on thread (created);
+create index if not exists th_forum_created on thread (forum, created);

@@ -38,8 +38,8 @@ func NewPostHandler(router *router.CustomRouter, logger *logrus.Logger, uc post.
 	}
 	utilitiesMiddleware := mw.NewUtilitiesMiddleware(h.logger)
 	middlewares := alice.New(context.ClearHandler, utilitiesMiddleware.UpgradeLogger, utilitiesMiddleware.CheckPanic)
-	h.router.Get("/post/:id/details", middlewares.ThenFunc(h.GetPost))
-	h.router.Post("/post/:id/details", middlewares.ThenFunc(h.UpdatePost))
+	h.router.Get("/api/post/:id/details", middlewares.ThenFunc(h.GetPost))
+	h.router.Post("/api/post/:id/details", middlewares.ThenFunc(h.UpdatePost))
 
 	return h
 }

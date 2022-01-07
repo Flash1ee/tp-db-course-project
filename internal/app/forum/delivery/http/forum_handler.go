@@ -50,11 +50,11 @@ func NewForumHandler(router router.Router, logger *logrus.Logger, uc forum.Useca
 	//h.router.Post("/forum/create", middlewares.ThenFunc(h.CreateForum))
 	//h.router.Post("/forum/:slug/create", middlewares.ThenFunc(h.CreateForumThreads))
 
-	h.router.HandleFunc("/forum/{slug}/details", middlewares.ThenFunc(h.GetForumInfo), "GET")
-	h.router.HandleFunc("/forum/{slug}/users", middlewares.ThenFunc(h.ForumUsers), "GET")
-	h.router.HandleFunc("/forum/{slug}/threads", middlewares.ThenFunc(h.ForumThreads), "GET")
-	h.router.HandleFunc("/forum/create", middlewares.ThenFunc(h.CreateForum), "POST")
-	h.router.HandleFunc("/forum/{slug}/create", middlewares.ThenFunc(h.CreateForumThreads), "POST")
+	h.router.HandleFunc("/api/forum/{slug}/details", middlewares.ThenFunc(h.GetForumInfo), "GET")
+	h.router.HandleFunc("/api/forum/{slug}/users", middlewares.ThenFunc(h.ForumUsers), "GET")
+	h.router.HandleFunc("/api/forum/{slug}/threads", middlewares.ThenFunc(h.ForumThreads), "GET")
+	h.router.HandleFunc("/api/forum/create", middlewares.ThenFunc(h.CreateForum), "POST")
+	h.router.HandleFunc("/api/forum/{slug}/create", middlewares.ThenFunc(h.CreateForumThreads), "POST")
 
 	return h
 }

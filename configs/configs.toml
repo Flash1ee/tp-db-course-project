@@ -6,5 +6,5 @@ bind_addr = ":5000"
 #database_url = "port=5432 user=flashie password=courseproject dbname=db_forum sslmode=disable"
 
 [server]
-#database_url = "host=localhost port=5432 user=flashie password=db dbname=db_forum sslmode=disable"
-database_url = "host=localhost port=5432 user=flashie password=1111 dbname=db_forum sslmode=disable"
+database_url = "host=localhost port=5432 user=flashie password=db dbname=db_forum sslmode=disable"
+#database_url = "host=localhost port=5432 user=flashie password=1111 dbname=db_forum sslmode=disable"
