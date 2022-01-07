@@ -66,7 +66,7 @@ func (u *ForumUsecase) GetForum(slug string) (*models.Forum, error) {
 	}
 	return res, err
 }
-func (u *ForumUsecase) GetForumUsers(slug string, since int, desc bool, pag *models_utilits.Pagination) ([]*models_users.User, error) {
+func (u *ForumUsecase) GetForumUsers(slug string, since string, desc bool, pag *models_utilits.Pagination) ([]*models_users.User, error) {
 	if _, err := u.repo.GetForumBySlag(slug); err != nil {
 		return nil, &app.GeneralError{
 			Err:         ForumNotFound,
@@ -113,7 +113,6 @@ func (u *ForumUsecase) CreateThread(req *models.RequestCreateThread) (*models_th
 	} else {
 		req.Forum = f.Slug
 	}
-	//@todo хз чего не так - падает
 	if req.Slug != "" {
 		if th, err := u.threadRepo.GetBySlug(req.Slug); err == nil {
 			//if th.Forum == req.Forum && th.Slug == req.Slug {

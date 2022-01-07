@@ -7,4 +7,5 @@ import "tp-db-project/internal/app/post/models"
 type Repository interface {
 	Get(id int64, related string) (*models.ResponsePostDetail, error)
 	Update(id int64, req *models.RequestUpdateMessage) (*models.ResponsePost, error)
+	CheckParentPost(parent int) (int, error)
 }

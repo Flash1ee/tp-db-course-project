@@ -1,9 +1,11 @@
 CREATE EXTENSION IF NOT EXISTS citext;
-
+--
+-- alter table users alter column
+--     nickname set data type citext COLLATE "ucs_basic";
 CREATE TABLE IF NOT EXISTS users
 (
     id       bigserial,
-    nickname citext NOT NULL UNIQUE PRIMARY KEY,
+    nickname citext COLLATE "ucs_basic" NOT NULL UNIQUE PRIMARY KEY,
     fullname text   NOT NULL,
     about    text,
     email    citext NOT NULL UNIQUE
@@ -37,7 +39,7 @@ CREATE TABLE IF NOT EXISTS post
     is_edited bool                     DEFAULT FALSE,
     forum     citext REFERENCES forum (slug),
     thread    integer REFERENCES thread (id),
-    created   timestamp with time zone DEFAULT now(),
+    created   timestamp with time zone  DEFAULT now(),
     path      bigint[]                 DEFAULT ARRAY []::INTEGER[]
 );
 
@@ -47,11 +49,10 @@ CREATE TABLE IF NOT EXISTS vote
     thread_id int    NOT NULL REFERENCES thread (id),
     voice     int    NOT NULL
 );
-
 CREATE TABLE IF NOT EXISTS user_forum
 (
-    nickname citext NOT NULL UNIQUE REFERENCES users (nickname),
-    forum    citext NOT NULL UNIQUE REFERENCES forum (slug)
+    nickname citext NOT NULL REFERENCES users (nickname),
+    forum    citext NOT NULL REFERENCES forum (slug)
 );
 
 CREATE OR REPLACE FUNCTION insert_votes_into_threads()
@@ -102,8 +103,62 @@ CREATE TRIGGER path_upd
     FOR EACH ROW
 EXECUTE PROCEDURE path_update();
 
-SELECT id, parent, author, message, is_edited, forum, thread, created FROM post
-WHERE path[1] IN (SELECT id FROM post WHERE thread = 243 ORDER BY id ASC LIMIT 65)
-ORDER BY path ASC, id ASC;
+CREATE OR REPLACE FUNCTION cnt_posts()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    UPDATE forum
+    SET posts = forum.posts + 1
+    WHERE slug = NEW.forum;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
-SELECT id, parent, author, message, is_edited, forum, thread, created FROM post WHERE thread = 1022  and path >  (SELECT path FROM post WHERE id = 12834)  ORDER BY path asc, id LIMIT NULLIF(3, 0)
+CREATE TRIGGER update_count_posts
+    AFTER INSERT
+    ON post
+    FOR EACH ROW
+EXECUTE PROCEDURE cnt_posts();
+
+CREATE OR REPLACE FUNCTION cnt_threads()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    UPDATE forum
+    SET threads = forum.threads + 1
+    WHERE slug = NEW.forum;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_count_threads
+    AFTER INSERT
+    ON thread
+    FOR EACH ROW
+EXECUTE PROCEDURE cnt_threads();
+
+
+
+CREATE OR REPLACE FUNCTION upd_user_forum()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    INSERT INTO user_forum (nickname, forum)
+    VALUES (NEW.author, NEW.forum)
+    ON CONFLICT do nothing;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_user_forum
+    AFTER INSERT
+    ON thread
+    FOR EACH ROW
+EXECUTE PROCEDURE upd_user_forum();
+
+CREATE TRIGGER update_users_forum
+    AFTER INSERT
+    ON post
+    FOR EACH ROW
+EXECUTE PROCEDURE upd_user_forum();
+

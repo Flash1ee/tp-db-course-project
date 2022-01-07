@@ -14,13 +14,16 @@ import (
 )
 
 const (
+	queryGetForumUsers = "SELECT DISTINCT u.nickname, u.fullname, u.about, u.email from user_forum " +
+		"LEFT JOIN users u on user_forum.nickname = u.nickname " +
+		"where user_forum.forum = $1 "
 	queryCreate         = "INSERT INTO forum(title, users_nickname, slug) VALUES($1, $2, $3);"
 	queryGetForumBySlug = "SELECT title, users_nickname, slug, posts, threads FROM forum WHERE slug = $1"
 
-	queryGetForumUsers = "SELECT nickname, fullname, about, email FROM forum " +
-		"JOIN thread t ON forum.slug = t.forum JOIN post p ON t.id = p.thread " +
-		"JOIN users u ON (p.author = u.nickname OR t.author = u.nickname) " +
-		"WHERE forum.slug = $1 "
+	//queryGetForumUsers = "SELECT DISTINCT u.nickname, u.fullname, u.about, u.email FROM forum " +
+	//	"JOIN thread t ON forum.slug = t.forum JOIN post p ON t.id = p.thread " +
+	//	"JOIN users u ON (p.author = u.nickname OR t.author = u.nickname) " +
+	//	"WHERE forum.slug = $1 "
 	queryGetForumThreads = "SELECT t.id, t.title, t.author, t.forum, t.message, t.votes, t.slug, t.created FROM thread as t " +
 		"LEFT JOIN forum f on t.forum = f.slug " +
 		"WHERE f.slug = $1 "
@@ -51,27 +54,38 @@ func (r *ForumRepository) GetForumBySlag(slag string) (*models.Forum, error) {
 	return forum, nil
 }
 
-func (r *ForumRepository) GetForumUsers(slug string, since int, desc bool, pag *models_utilits.Pagination) ([]*models_users.User, error) {
-	orderBy := "ORDER BY u.nickname "
-	querySince := " AND u.nickname > $2 "
+func (r *ForumRepository) GetForumUsers(slug string, since string, desc bool, pag *models_utilits.Pagination) ([]*models_users.User, error) {
+	//orderBy := "ORDER BY u.nickname "
+	//querySince := " AND u.nickname > $2 "
 	query := queryGetForumUsers
 	limit := pag.Limit
 	var rows pgx.Rows
 	var err error
 
+	if desc && since != "" {
+		query += fmt.Sprintf(" and u.nickname < '%s'", since)
+	} else if since != "" {
+		query += fmt.Sprintf(" and u.nickname > '%s'", since)
+	}
+	query += " ORDER BY u.nickname "
 	if desc {
-		orderBy += "DESC"
+		query += "desc"
 	}
-	if limit > 0 {
-		orderBy += fmt.Sprintf(" LIMIT %d", pag.Limit)
-	}
-	if since != -1 {
-		query = query + querySince + orderBy
-		rows, err = r.conn.Query(context.Background(), query, slug, since)
-	} else {
-		query = query + orderBy
-		rows, err = r.conn.Query(context.Background(), query, slug)
-	}
+	query += fmt.Sprintf(" LIMIT %d", limit)
+
+	//if desc {
+	//	orderBy += "DESC"
+	//}
+	//if limit > 0 {
+	//	orderBy += fmt.Sprintf(" LIMIT %d", pag.Limit)
+	//}
+	//if since != -1 {
+	//	//query = query + querySince + orderBy
+	//	rows, err = r.conn.Query(context.Background(), query, slug, since)
+	//} else {
+	//query = query + orderBy
+	rows, err = r.conn.Query(context.Background(), query, slug)
+	//}
 	if err != nil {
 		return nil, err
 	}

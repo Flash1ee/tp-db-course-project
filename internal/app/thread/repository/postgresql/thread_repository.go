@@ -59,7 +59,7 @@ func (r *ThreadRepository) CreateThread(req *models2.RequestCreateThread) (*mode
 				&res.Message, &res.Votes, &res.Slug, threadTime)
 	}
 
-	fmt.Printf("THREAD SLUG AFTER CREATED = %s FORUM = %s\n", res.Slug, res.Forum)
+	//fmt.Printf("THREAD SLUG AFTER CREATED = %s FORUM = %s\n", res.Slug, res.Forum)
 	res.Created = strfmt.DateTime(threadTime.UTC()).String()
 
 	return res, err
@@ -133,7 +133,8 @@ func (r *ThreadRepository) CreatePosts(forum string, thread int64, posts []*mode
 
 	newPosts := make([]post_models.ResponsePost, len(posts), len(posts))
 	queryArgs := make([]interface{}, 0, 0)
-	insertTime := strfmt.DateTime(time.Now())
+	//insertTime := strfmt.DateTime(time.Now())
+	insertTime := time.Now()
 
 	for i, post := range posts {
 		newPosts[i].Parent = post.Parent
@@ -141,7 +142,8 @@ func (r *ThreadRepository) CreatePosts(forum string, thread int64, posts []*mode
 		newPosts[i].Message = post.Message
 		newPosts[i].Forum = forum
 		newPosts[i].Thread = thread
-		newPosts[i].Created = insertTime.String()
+		//newPosts[i].Created = insertTime.String()
+		newPosts[i].Created = insertTime.UTC()
 
 		query += fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d),",
 			i*6+1, i*6+2, i*6+3, i*6+4, i*6+5, i*6+6)
@@ -213,7 +215,9 @@ func (r *ThreadRepository) GetPostsByFlats(id int, since int64, desc bool, pag *
 			return nil, err
 		}
 
-		post.Created = strfmt.DateTime(timeTmp.UTC()).String()
+		post.Created = timeTmp.UTC()
+
+		//post.Created = strfmt.DateTime(timeTmp.UTC()).String()
 
 		posts = append(posts, post)
 	}
@@ -283,7 +287,10 @@ func (r *ThreadRepository) GetPostsByTree(id int, since int64, desc bool, pag *p
 		if err != nil {
 			return nil, err
 		}
-		post.Created = strfmt.DateTime(timeTmp.UTC()).String()
+		//post.Created = strfmt.DateTime(timeTmp.UTC())
+		post.Created = timeTmp.UTC()
+
+		//post.Created = strfmt.DateTime(timeTmp.UTC()).String()
 
 		posts = append(posts, post)
 	}
@@ -366,8 +373,9 @@ func (r *ThreadRepository) GetPostsByParentTree(id int, since int64, desc bool, 
 		if err != nil {
 			return nil, err
 		}
+		post.Created = timeTmp.UTC()
 
-		post.Created = strfmt.DateTime(timeTmp.UTC()).String()
+		//post.Created = strfmt.DateTime(timeTmp.UTC()).String()
 
 		posts = append(posts, post)
 	}

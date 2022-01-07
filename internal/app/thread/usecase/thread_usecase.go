@@ -5,9 +5,12 @@ import (
 	"strconv"
 	"tp-db-project/internal/app"
 	pag_models "tp-db-project/internal/app/models"
+	"tp-db-project/internal/app/post"
 	post_models "tp-db-project/internal/app/post/models"
 	"tp-db-project/internal/app/thread"
 	"tp-db-project/internal/app/thread/models"
+	"tp-db-project/internal/app/thread/repository"
+	"tp-db-project/internal/app/users"
 	"tp-db-project/internal/app/vote"
 	models2 "tp-db-project/internal/app/vote/models"
 )
@@ -15,12 +18,17 @@ import (
 type ThreadUsecase struct {
 	repo     thread.Repository
 	repoVote vote.Repository
+	repoPost post.Repository
+	repoUser users.Repository
 }
 
-func NewThreadUsecase(repo thread.Repository, voteRepo vote.Repository) *ThreadUsecase {
+func NewThreadUsecase(repo thread.Repository, voteRepo vote.Repository, postRepo post.Repository,
+	userRepo users.Repository) *ThreadUsecase {
 	return &ThreadUsecase{
 		repo:     repo,
 		repoVote: voteRepo,
+		repoPost: postRepo,
+		repoUser: userRepo,
 	}
 }
 func (u *ThreadUsecase) GetThreadInfo(slugOrID string) (*models.ResponseThread, error) {
@@ -30,8 +38,12 @@ func (u *ThreadUsecase) GetThreadInfo(slugOrID string) (*models.ResponseThread, 
 	case nil:
 		res, err := u.repo.GetByID(int64(ID))
 		if err != nil {
-			if err == pgx.ErrNoRows {
-				return nil, NotFound
+			if err == repository.NotFound {
+
+				return nil, &app.GeneralError{
+					Err:         NotFound,
+					ExternalErr: err,
+				}
 			} else {
 				return nil, &app.GeneralError{
 					Err:         InternalError,
@@ -43,13 +55,16 @@ func (u *ThreadUsecase) GetThreadInfo(slugOrID string) (*models.ResponseThread, 
 	default:
 		res, err := u.repo.GetBySlug(slugOrID)
 		if err != nil {
-			if err == pgx.ErrNoRows {
-				return nil, NotFound
-			} else {
+			if err == repository.NotFound {
+
 				return nil, &app.GeneralError{
-					Err:         InternalError,
+					Err:         NotFound,
 					ExternalErr: err,
 				}
+			}
+			return nil, &app.GeneralError{
+				Err:         InternalError,
+				ExternalErr: err,
 			}
 		}
 		return res, nil
@@ -57,8 +72,22 @@ func (u *ThreadUsecase) GetThreadInfo(slugOrID string) (*models.ResponseThread, 
 }
 func (u *ThreadUsecase) UpdateThread(slugOrID string, req *models.RequestUpdateThread) (*models.ResponseThread, error) {
 	ID, err := strconv.Atoi(slugOrID)
+	var th *models.ResponseThread
 	switch err {
 	case nil:
+		th, err = u.repo.GetByID(int64(ID))
+		if err != nil {
+			return nil, &app.GeneralError{
+				Err:         NotFound,
+				ExternalErr: err,
+			}
+		}
+		if req.Title == "" {
+			req.Title = th.Title
+		}
+		if req.Message == "" {
+			req.Message = th.Message
+		}
 		res, err := u.repo.UpdateByID(int64(ID), req)
 		if err != nil {
 			if err == pgx.ErrNoRows {
@@ -72,6 +101,19 @@ func (u *ThreadUsecase) UpdateThread(slugOrID string, req *models.RequestUpdateT
 		}
 		return res, nil
 	default:
+		th, err = u.repo.GetBySlug(slugOrID)
+		if err != nil {
+			return nil, &app.GeneralError{
+				Err:         NotFound,
+				ExternalErr: err,
+			}
+		}
+		if req.Title == "" {
+			req.Title = th.Title
+		}
+		if req.Message == "" {
+			req.Message = th.Message
+		}
 		res, err := u.repo.UpdateBySlug(slugOrID, req)
 		if err != nil {
 			if err == pgx.ErrNoRows {
@@ -99,13 +141,22 @@ func (u *ThreadUsecase) UpdateVoice(slugOrID string, req *models2.RequestVoteUpd
 	}
 
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, NotFound
+		if err == repository.NotFound {
+			return nil, &app.GeneralError{
+				Err:         NotFound,
+				ExternalErr: err,
+			}
 		} else {
 			return nil, &app.GeneralError{
 				Err:         InternalError,
 				ExternalErr: err,
 			}
+		}
+	}
+	if _, err := u.repoUser.GetByNickname(req.Nickname); err != nil {
+		return nil, &app.GeneralError{
+			Err:         AuthorNotFound,
+			ExternalErr: err,
 		}
 	}
 	isExists, err := u.repoVote.Exists(req.Nickname, th.Id)
@@ -145,9 +196,19 @@ func (u *ThreadUsecase) GetPostsBySort(slugOrId string, sort string, since int64
 	if err != nil {
 		th, err := u.repo.GetBySlug(slugOrId)
 		if err != nil {
-			return nil, err
+			return nil, &app.GeneralError{
+				Err:         NotFound,
+				ExternalErr: err,
+			}
 		} else {
 			idInt = int(th.Id)
+		}
+	} else {
+		if _, err := u.repo.GetByID(int64(idInt)); err != nil {
+			return nil, &app.GeneralError{
+				Err:         NotFound,
+				ExternalErr: err,
+			}
 		}
 	}
 
@@ -171,18 +232,52 @@ func (u *ThreadUsecase) CreatePosts(slugOrID string, posts []*models.RequestNewP
 	if err != nil {
 		th, err = u.repo.GetBySlug(slugOrID)
 		if err != nil {
-			return nil, err
+			return nil, &app.GeneralError{
+				Err:         NotFound,
+				ExternalErr: err,
+			}
 		} else {
 			idInt = int(th.Id)
 		}
 	} else {
 		th, err = u.repo.GetByID(int64(idInt))
 		if err != nil {
-			return nil, err
+			return nil, &app.GeneralError{
+				Err:         NotFound,
+				ExternalErr: err,
+			}
 		}
 	}
 	forumName = th.Forum
+	if len(posts) == 0 {
+		return nil, &app.GeneralError{
+			Err:         CreatedEmpty,
+			ExternalErr: err,
+		}
+	}
+	if posts[0].Parent != 0 {
+		parentTh, err := u.repoPost.CheckParentPost(int(posts[0].Parent))
+		if err != nil {
+			return nil, &app.GeneralError{
+				Err:         ParentNotFound,
+				ExternalErr: err,
+			}
+		}
 
+		if parentTh != idInt {
+			return nil, &app.GeneralError{
+				Err:         ParentInvalid,
+				ExternalErr: err,
+			}
+		}
+	}
+	_, err = u.repoUser.GetByNickname(posts[0].Author)
+	if err != nil {
+		return nil, &app.GeneralError{
+			Err:         AuthorNotFound,
+			ExternalErr: err,
+		}
+	}
 	res, err := u.repo.CreatePosts(forumName, int64(idInt), posts)
 	if err != nil {
 		return nil, &app.GeneralError{

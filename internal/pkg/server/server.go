@@ -68,7 +68,7 @@ func (s *Server) Start() error {
 	postUsecase := post_usecase.NewPostUsecase(postRepo)
 	forumUsecase := forum_usecase.NewForumUsecase(forumRepo, usersRepo, threadRepo)
 	serviceUsecase := service_usecase.NewServiceUsecase(serviceRepo)
-	threadUsecase := thread_usecase.NewThreadUsecase(threadRepo, voteRepo)
+	threadUsecase := thread_usecase.NewThreadUsecase(threadRepo, voteRepo, postRepo, usersRepo)
 
 	_ = users_handler.NewUsersHandler(router, s.logger, userUsecase)
 	_ = post_handler.NewPostHandler(router, s.logger, postUsecase)

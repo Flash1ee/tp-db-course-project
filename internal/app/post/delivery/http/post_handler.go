@@ -7,9 +7,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
+	"strings"
 	mw "tp-db-project/internal/app/middlewares"
 	"tp-db-project/internal/app/post"
 	models2 "tp-db-project/internal/app/post/models"
+	post_repository "tp-db-project/internal/app/post/repository"
 	"tp-db-project/internal/pkg/handler"
 	"tp-db-project/internal/pkg/router"
 	"tp-db-project/internal/pkg/utilits"
@@ -54,12 +56,16 @@ func (h *PostHandler) GetPost(w http.ResponseWriter, r *http.Request) {
 		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
 		return
 	}
-	related := params.ByName("related")
+	related := r.URL.Query().Get("related")
 	if related != "" {
-		if related != "user" && related != "forum" && related != "thread" {
-			h.Error(w, r, http.StatusBadRequest, InvalidParamRelated)
-			return
+		args := strings.Split(related, ",")
+		for _, arg := range args {
+			if arg != "user" && arg != "forum" && arg != "thread" {
+				h.Error(w, r, http.StatusBadRequest, InvalidParamRelated)
+				return
+			}
 		}
+
 	}
 
 	res, err := h.usecase.GetPost(int64(idInt), related)
@@ -83,6 +89,10 @@ func (h *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	}
 	req := &models2.RequestUpdateMessage{}
 	if err := h.GetRequestBody(w, r, req); err != nil {
+		if err.Error() == "EOF" {
+			h.Error(w, r, http.StatusNotFound, post_repository.NotFound)
+			return
+		}
 		h.Error(w, r, http.StatusBadRequest, InvalidBody)
 		return
 	}

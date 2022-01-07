@@ -13,6 +13,6 @@ type Usecase interface {
 	GetForum(slug string) (*models.Forum, error)
 	Create(req *models.RequestCreateForum) (*models.Forum, error)
 	CreateThread(req *models.RequestCreateThread) (*models_thread.ResponseThread, error)
-	GetForumUsers(slug string, since int, desc bool, pag *models_utilits.Pagination) ([]*models_users.User, error)
+	GetForumUsers(slug string, since string, desc bool, pag *models_utilits.Pagination) ([]*models_users.User, error)
 	GetForumThreads(forumSlug string, sinceDate string, desc bool, pag *models_utilits.Pagination) ([]*models_thread.ResponseThread, error)
 }

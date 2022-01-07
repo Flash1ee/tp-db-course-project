@@ -1,7 +1,6 @@
 package forum_handler
 
 import (
-	"fmt"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
@@ -95,7 +94,7 @@ func (h *ForumHandler) ForumUsers(w http.ResponseWriter, r *http.Request) {
 	desc := r.URL.Query().Get("desc")
 	//limit, since, desc := params.ByName("limit"), params.ByName("since"), params.ByName("desc")
 	var err error
-	var limitInt, sinceInt int
+	var limitInt int
 	var descBool bool
 
 	if limit == "" {
@@ -110,15 +109,15 @@ func (h *ForumHandler) ForumUsers(w http.ResponseWriter, r *http.Request) {
 
 	pag := &models.Pagination{Limit: int64(limitInt)}
 
-	if since == "" {
-		sinceInt = -1
-	} else {
-		sinceInt, err = strconv.Atoi(since)
-		if err != nil {
-			h.Error(w, r, http.StatusBadRequest, InvalidLimitArgument)
-			return
-		}
-	}
+	//if since == "" {
+	//	sinceInt = -1
+	//} else {
+	//	sinceInt, err = strconv.Atoi(since)
+	//	if err != nil {
+	//		h.Error(w, r, http.StatusBadRequest, InvalidLimitArgument)
+	//		return
+	//	}
+	//}
 
 	if desc != "true" && desc != "false" && desc != "" {
 		h.Error(w, r, http.StatusBadRequest, InvalidDescArgument)
@@ -131,7 +130,7 @@ func (h *ForumHandler) ForumUsers(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	res, err := h.usecase.GetForumUsers(slug, sinceInt, descBool, pag)
+	res, err := h.usecase.GetForumUsers(slug, since, descBool, pag)
 	if err != nil {
 		h.UsecaseError(w, r, err, CodeByErrorGet)
 		return
@@ -254,7 +253,7 @@ func (h *ForumHandler) CreateForumThreads(w http.ResponseWriter, r *http.Request
 		req.Forum = slugForum
 		//flag = true
 	}
-	fmt.Printf("forum slug = %s; thread slug = %s\n", req.Forum, req.Slug)
+	//fmt.Printf("forum slug = %s; thread slug = %s\n", req.Forum, req.Slug)
 	f, err := h.usecase.CreateThread(req)
 	if err != nil {
 		if err == forum_usecase.AlreadyExists {
@@ -270,15 +269,4 @@ func (h *ForumHandler) CreateForumThreads(w http.ResponseWriter, r *http.Request
 	//}
 
 	h.Respond(w, r, http.StatusCreated, *f)
-}
-
-func InvertCase(str string) string {
-	data := []byte(str)
-	for i, c := range data {
-		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') {
-			c ^= 'a' - 'A'
-		}
-		data[i] = c
-	}
-	return string(data)
 }

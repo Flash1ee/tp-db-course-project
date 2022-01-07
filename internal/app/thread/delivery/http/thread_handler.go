@@ -4,14 +4,16 @@ import (
 	"github.com/gorilla/context"
 	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
+	"tp-db-project/internal/app"
 	mw "tp-db-project/internal/app/middlewares"
 	models3 "tp-db-project/internal/app/models"
-	models4 "tp-db-project/internal/app/post/models"
 	"tp-db-project/internal/app/thread"
 	"tp-db-project/internal/app/thread/models"
+	thread_usecase "tp-db-project/internal/app/thread/usecase"
 	models2 "tp-db-project/internal/app/vote/models"
 	"tp-db-project/internal/pkg/handler"
 	"tp-db-project/internal/pkg/router"
@@ -60,12 +62,16 @@ func (h *ThreadHandler) CreatePosts(w http.ResponseWriter, r *http.Request) {
 		h.Error(w, r, http.StatusBadRequest, InvalidBody)
 		return
 	}
-	if len(posts) == 0 {
-		h.Respond(w, r, http.StatusCreated, []models4.ResponsePost{})
-		return
-	}
+	//if len(posts) == 0 {
+	//	h.Respond(w, r, http.StatusCreated, []models4.ResponsePost{})
+	//	return
+	//}
 	res, err := h.usecase.CreatePosts(slugOrID, posts)
 	if err != nil {
+		if errors.Cause(err).(*app.GeneralError).Err == thread_usecase.CreatedEmpty {
+			h.Respond(w, r, http.StatusCreated, []interface{}{})
+			return
+		}
 		h.UsecaseError(w, r, err, CodeByErrorPost)
 		return
 	}
