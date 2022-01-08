@@ -3,10 +3,8 @@ package forum_postgresql
 import (
 	"context"
 	"fmt"
-	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"time"
 	"tp-db-project/internal/app/forum/models"
 	models_utilits "tp-db-project/internal/app/models"
 	models_thread "tp-db-project/internal/app/thread/models"
@@ -138,11 +136,13 @@ func (r *ForumRepository) GetForumThreads(forumSlug string, sinceDate string, de
 	res := make([]*models_thread.ResponseThread, 0, 0)
 	for rows.Next() {
 		thread := &models_thread.ResponseThread{}
-		createdTime := time.Time{}
-		if err := rows.Scan(&thread.Id, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &createdTime); err != nil {
+		//createdTime := time.Time{}
+		//createdTime := &strfmt.DateTime{}
+		if err := rows.Scan(&thread.Id, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &thread.Created); err != nil {
 			return nil, err
 		}
-		thread.Created = strfmt.DateTime(createdTime.UTC()).String()
+		//thread.Created = strfmt.DateTime(createdTime.UTC()).String()
+		//thread.Created = time.Time(*createdTime).UTC()
 		res = append(res, thread)
 	}
 

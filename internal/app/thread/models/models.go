@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type Thread struct {
 	Title   string `json:"title"`
 	Author  string `json:"author"`
@@ -7,5 +9,5 @@ type Thread struct {
 	Message string `json:"message"`
 	Votes   int64  `json:"votes"`
 	Slug    string `json:"slug,omitempty"`
-	Created string `json:"created"`
+	Created time.Time `json:"created,omitempty"`
 }

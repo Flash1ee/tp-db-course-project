@@ -70,6 +70,10 @@ func (h *ForumHandler) GetForumInfo(w http.ResponseWriter, r *http.Request) {
 	//slug := params.ByName("slug")
 	res, err := h.usecase.GetForum(slug)
 	if err != nil {
+		//if errors.Cause(err).(*app.GeneralError).Err == forum_usecase.ForumNotFound {
+		//	h.Respond(w, r, http.StatusOK, nil)
+		//	return
+		//}
 		h.UsecaseError(w, r, err, CodeByErrorGet)
 		return
 	}
@@ -201,6 +205,10 @@ func (h *ForumHandler) ForumThreads(w http.ResponseWriter, r *http.Request) {
 
 	res, err := h.usecase.GetForumThreads(slug, since, descBool, pag)
 	if err != nil {
+		//if errors.Cause(err).(*app.GeneralError).Err == forum_usecase.ForumNotFound {
+		//	h.Respond(w, r, http.StatusOK, nil)
+		//	return
+		//}
 		h.UsecaseError(w, r, err, CodeByErrorGet)
 		return
 	}

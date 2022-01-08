@@ -2,7 +2,7 @@ package post_postgresql
 
 import (
 	"context"
-	"github.com/go-openapi/strfmt"
+	"fmt"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"strings"
@@ -46,14 +46,14 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 	var err error
 	res := &models.ResponsePostDetail{}
 
-	postTime := &time.Time{}
+	postTime := time.Time{}
 	for _, arg := range strings.Split(related, ",") {
 		switch arg {
 		case "":
 			post := &models.ResponsePost{}
 			if err = r.conn.QueryRow(context.Background(), queryGetPost, id).
 				Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
-					&post.IsEdited, &post.Forum, &post.Thread, postTime); err != nil {
+					&post.IsEdited, &post.Forum, &post.Thread, &postTime); err != nil {
 				if err == pgx.ErrNoRows {
 					return nil, post_repository.NotFound
 				}
@@ -63,27 +63,35 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 			}
 
 			//fmt.Println("POST TIME", postTime)
-
-			//post.Created = strfmt.DateTime(postTime.UTC()).String()
-			post.Created = postTime.UTC()
+			//t := strfmt.DateTime(postTime.UTC())
+			//post.Created = &t
+			//post.Created = time.Time(*postTime).String()
+			post.Created = postTime.Format(time.RFC3339)
 			//fmt.Println("POST TIME", post.Created)
-
+			fmt.Println(post.Created)
+			//post.Created = post.Created.Format(time.RFC3339)
 			res.Post = post
 		case "user":
 			post := &models.ResponsePost{}
 			author := &models2.ResponseUser{}
 			if err = r.conn.QueryRow(context.Background(), queryGetPostAuthor, id).
 				Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
-					&post.IsEdited, &post.Forum, &post.Thread, postTime,
+					&post.IsEdited, &post.Forum, &post.Thread, &postTime,
 					&author.Nickname, &author.FullName, &author.About, &author.Email); err != nil {
 				if err == pgx.ErrNoRows {
 					return nil, post_repository.NotFound
 				}
 				return nil, err
 			}
-			//post.Created = postTime.UTC().String()
+			post.Created = postTime.Format(time.RFC3339)
 
-			post.Created = postTime.UTC()
+			//post.Created = postTime.UTC()
+			//post.Created = time.Time(*postTime).String()
+
+			//post.Created = time.Time(*postTime).UTC().Truncate(time.Nanosecond)
+			//post.Created = *postTime
+			//t := strfmt.DateTime(postTime.UTC())
+			//post.Created = &t
 			res.Post = post
 			res.Author = author
 
@@ -91,22 +99,30 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 			post := &models.ResponsePost{}
 			thread := &models3.ResponseThread{}
 
-			threadTime := &time.Time{}
+			//threadTime := &strfmt.DateTime{}
 			if err = r.conn.QueryRow(context.Background(), queryGetPostThread, id).
 				Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
-					&post.IsEdited, &post.Forum, &post.Thread, postTime,
+					&post.IsEdited, &post.Forum, &post.Thread, &postTime,
 					&thread.Id, &thread.Title, &thread.Author, &thread.Forum,
-					&thread.Message, &thread.Votes, &thread.Slug, threadTime); err != nil {
+					&thread.Message, &thread.Votes, &thread.Slug, &thread.Created); err != nil {
 				if err == pgx.ErrNoRows {
 					return nil, post_repository.NotFound
 				}
 				return nil, err
 			}
 			//post.Created = strfmt.DateTime(postTime.UTC())
-			post.Created = postTime.UTC()
+			//post.Created = time.Time(*postTime).String()
+
+			//post.Created = time.Time(*postTime).UTC().Truncate(time.Nanosecond)
+
+			post.Created = postTime.Format(time.RFC3339)
+			//t := strfmt.DateTime(postTime.UTC())
+			//post.Created = &t
+			//post.Created = *postTime
 
 			//post.Created = strfmt.DateTime(postTime.UTC()).String()
-			thread.Created = strfmt.DateTime(threadTime.UTC()).String()
+			//thread.Created = *threadTime.String()
+			//thread.Created = time.Time(*threadTime).UTC().Truncate(time.Nanosecond)
 
 			res.Post = post
 			res.Thread = thread
@@ -116,7 +132,7 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 			forum := &models4.ResponseForum{}
 			if err = r.conn.QueryRow(context.Background(), queryGetPostForum, id).
 				Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
-					&post.IsEdited, &post.Forum, &post.Thread, postTime,
+					&post.IsEdited, &post.Forum, &post.Thread, &postTime,
 					&forum.Title, &forum.User, &forum.Slug, &forum.Posts,
 					&forum.Threads); err != nil {
 				if err == pgx.ErrNoRows {
@@ -127,10 +143,16 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 
 			//post.Created = strfmt.DateTime(postTime.UTC())
 			//
-			post.Created = postTime.UTC()
+			//post.Created = postTime.UTC()
+			//t := strfmt.DateTime(postTime.UTC())
+			//post.Created = &t
+			//post.Created = *postTime
 
 			//post.Created = strfmt.DateTime(postTime.UTC()).String()
+			post.Created = postTime.Format(time.RFC3339)
+			//post.Created = time.Time(*postTime).String()
 
+			//post.Created = time.Time(*postTime).UTC().Truncate(time.Nanosecond)
 			res.Post = post
 			res.Forum = forum
 		default:
@@ -143,12 +165,13 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 
 func (r *PostRepository) Update(id int64, req *models.RequestUpdateMessage) (*models.ResponsePost, error) {
 	post := &models.ResponsePost{}
-	postTime := &time.Time{}
+	postTime := time.Time{}
+	//postTime := &strfmt.DateTime{}
 
 	if req.Message == "" {
 		if err := r.conn.QueryRow(context.Background(), queryUpdatePostNoEdit, id).
 			Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
-				&post.IsEdited, &post.Forum, &post.Thread, postTime); err != nil {
+				&post.IsEdited, &post.Forum, &post.Thread, &postTime); err != nil {
 			if err == pgx.ErrNoRows {
 				return nil, post_repository.NotFound
 			}
@@ -157,7 +180,7 @@ func (r *PostRepository) Update(id int64, req *models.RequestUpdateMessage) (*mo
 	} else {
 		if err := r.conn.QueryRow(context.Background(), queryUpdatePost, id, req.Message).
 			Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
-				&post.IsEdited, &post.Forum, &post.Thread, postTime); err != nil {
+				&post.IsEdited, &post.Forum, &post.Thread, &postTime); err != nil {
 			if err == pgx.ErrNoRows {
 				return nil, post_repository.NotFound
 			}
@@ -165,7 +188,13 @@ func (r *PostRepository) Update(id int64, req *models.RequestUpdateMessage) (*mo
 		}
 	}
 
-	post.Created = postTime.UTC()
+	//post.Created = postTime.UTC()
+	//t := strfmt.DateTime(postTime.UTC())
+	//post.Created = &t
+	post.Created = postTime.Format(time.RFC3339)
+	//post.Created = time.Time(*postTime).String()
+
+	//post.Created = time.Time(*postTime).UTC().Truncate(time.Nanosecond)
 
 	return post, nil
 }

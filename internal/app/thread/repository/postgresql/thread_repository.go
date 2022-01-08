@@ -3,7 +3,6 @@ package thread_postgresql
 import (
 	"context"
 	"fmt"
-	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"time"
@@ -47,83 +46,95 @@ func (r *ThreadRepository) CreateThread(req *models2.RequestCreateThread) (*mode
 	if req == nil {
 		return nil, repository.ArgError
 	}
-	threadTime := &time.Time{}
-
+	//threadTime := &time.Time{}
+	//threadTime := &strfmt.DateTime{}
 	if req.Created == "" {
 		err = r.conn.QueryRow(context.Background(), queryCreateForumThreadNoTime, req.Title, req.Author, req.Forum, req.Message, req.Slug).
 			Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
-				&res.Message, &res.Votes, &res.Slug, threadTime)
+				&res.Message, &res.Votes, &res.Slug, &res.Created)
 	} else {
 		err = r.conn.QueryRow(context.Background(), queryCreateForumThreadWithTime, req.Title, req.Author, req.Forum, req.Message, req.Slug, req.Created).
 			Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
-				&res.Message, &res.Votes, &res.Slug, threadTime)
+				&res.Message, &res.Votes, &res.Slug, &res.Created)
 	}
 
 	//fmt.Printf("THREAD SLUG AFTER CREATED = %s FORUM = %s\n", res.Slug, res.Forum)
-	res.Created = strfmt.DateTime(threadTime.UTC()).String()
+	//res.Created = strfmt.DateTime(threadTime.UTC()).String()
 
+	//res.Created = time.Time(*threadTime).UTC()
 	return res, err
 }
 
 func (r *ThreadRepository) GetByID(id int64) (*models.ResponseThread, error) {
 	res := &models.ResponseThread{}
-	threadTime := &time.Time{}
+	//threadTime := &time.Time{}
+	//threadTime := &strfmt.DateTime{}
+
+
 
 	if err := r.conn.QueryRow(context.Background(), queryGetThreadById, id).
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
-			&res.Message, &res.Votes, &res.Slug, threadTime); err != nil {
+			&res.Message, &res.Votes, &res.Slug, &res.Created); err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, repository.NotFound
 		}
 		return nil, err
 	}
-	res.Created = strfmt.DateTime(threadTime.UTC()).String()
-
+	//res.Created = strfmt.DateTime(threadTime.UTC()).String()
+	//res.Created = time.Time(*threadTime).UTC()
 	return res, nil
 }
 
 func (r *ThreadRepository) GetBySlug(slug string) (*models.ResponseThread, error) {
 	res := &models.ResponseThread{}
-	threadTime := &time.Time{}
+	//threadTime := &strfmt.DateTime{}
+
+	//threadTime := &time.Time{}
 
 	if err := r.conn.QueryRow(context.Background(), queryGetThreadBySlug, slug).
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
-			&res.Message, &res.Votes, &res.Slug, threadTime); err != nil {
+			&res.Message, &res.Votes, &res.Slug, &res.Created); err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, repository.NotFound
 		}
 
 		return nil, err
 	}
-	res.Created = strfmt.DateTime(threadTime.UTC()).String()
+	//res.Created = strfmt.DateTime(threadTime.UTC()).String()
 
+	//res.Created = time.Time(*threadTime).UTC()
 	return res, nil
 }
 
 func (r *ThreadRepository) UpdateByID(id int64, req *models.RequestUpdateThread) (*models.ResponseThread, error) {
 	res := &models.ResponseThread{}
-	threadTime := &time.Time{}
+	//threadTime := &time.Time{}
+	//threadTime := &strfmt.DateTime{}
 	if err := r.conn.QueryRow(context.Background(), queryUpdateThreadById, id, req.Title, req.Message).
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
-			&res.Message, &res.Votes, &res.Slug, threadTime); err != nil {
+			&res.Message, &res.Votes, &res.Slug, &res.Created); err != nil {
 		return nil, err
 	}
 
-	res.Created = strfmt.DateTime(threadTime.UTC()).String()
+	//res.Created = strfmt.DateTime(threadTime.UTC()).String()
+	//res.Created = time.Time(*threadTime).UTC()
 
 	return res, nil
 }
 
 func (r *ThreadRepository) UpdateBySlug(slug string, req *models.RequestUpdateThread) (*models.ResponseThread, error) {
 	res := &models.ResponseThread{}
-	threadTime := &time.Time{}
+	//threadTime := &time.Time{}
+	//threadTime := &strfmt.DateTime{}
+
 	if err := r.conn.QueryRow(context.Background(), queryUpdateThreadBySlug, slug, req.Title, req.Message).
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
-			&res.Message, &res.Votes, &res.Slug, threadTime); err != nil {
+			&res.Message, &res.Votes, &res.Slug, &res.Created); err != nil {
 		return nil, err
 	}
 
-	res.Created = strfmt.DateTime(threadTime.UTC()).String()
+	//res.Created = strfmt.DateTime(threadTime.UTC()).String()
+	//res.Created = time.Time(*threadTime).UTC()
 
 	return res, nil
 }
@@ -143,12 +154,16 @@ func (r *ThreadRepository) CreatePosts(forum string, thread int64, posts []*mode
 		newPosts[i].Forum = forum
 		newPosts[i].Thread = thread
 		//newPosts[i].Created = insertTime.String()
-		newPosts[i].Created = insertTime.UTC()
+		newPosts[i].Created = insertTime.Format(time.RFC3339)
+
+		//newPosts[i].Created = time.Time(insertTime)
 
 		query += fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d),",
 			i*6+1, i*6+2, i*6+3, i*6+4, i*6+5, i*6+6)
 
 		queryArgs = append(queryArgs, post.Parent, post.Author, post.Message, forum, thread, insertTime)
+		//queryArgs = append(queryArgs, post.Parent, post.Author, post.Message, forum, thread)
+
 	}
 	query = query[:len(query)-1]
 	query += " RETURNING id;"
@@ -202,7 +217,9 @@ func (r *ThreadRepository) GetPostsByFlats(id int, since int64, desc bool, pag *
 	posts := make([]post_models.ResponsePost, 0, 0)
 	for rows.Next() {
 		post := post_models.ResponsePost{}
-		timeTmp := &time.Time{}
+		//timeTmp := &strfmt.DateTime{}
+
+		timeTmp := time.Now()
 
 		err = rows.Scan(&post.Id, &post.Parent,
 			&post.Author,
@@ -210,14 +227,19 @@ func (r *ThreadRepository) GetPostsByFlats(id int, since int64, desc bool, pag *
 			&post.IsEdited,
 			&post.Forum,
 			&post.Thread,
-			timeTmp)
+			&timeTmp)
 		if err != nil {
 			return nil, err
 		}
 
-		post.Created = timeTmp.UTC()
+		//t := strfmt.DateTime(timeTmp.UTC())
+		//post.Created = &t
+		//post.Created = time.Time(*timeTmp).String()
+
+		//post.Created = time.Time(*timeTmp).UTC().Truncate(time.Nanosecond)
 
 		//post.Created = strfmt.DateTime(timeTmp.UTC()).String()
+		post.Created = timeTmp.Format(time.RFC3339)
 
 		posts = append(posts, post)
 	}
@@ -273,8 +295,8 @@ func (r *ThreadRepository) GetPostsByTree(id int, since int64, desc bool, pag *p
 	posts := make([]post_models.ResponsePost, 0, 0)
 	for rows.Next() {
 		post := post_models.ResponsePost{}
-		timeTmp := &time.Time{}
-
+		timeTmp := time.Time{}
+		//timeTmp := &strfmt.DateTime{}
 		err = rows.Scan(
 			&post.Id,
 			&post.Parent,
@@ -283,12 +305,17 @@ func (r *ThreadRepository) GetPostsByTree(id int, since int64, desc bool, pag *p
 			&post.IsEdited,
 			&post.Forum,
 			&post.Thread,
-			timeTmp)
+			&timeTmp)
 		if err != nil {
 			return nil, err
 		}
 		//post.Created = strfmt.DateTime(timeTmp.UTC())
-		post.Created = timeTmp.UTC()
+		//t := strfmt.DateTime(timeTmp.UTC())
+		//post.Created = &t
+		post.Created = timeTmp.Format(time.RFC3339)
+		//post.Created = time.Time(*timeTmp).UTC().Truncate(time.Nanosecond)
+		//post.Created = time.Time(*timeTmp).String()
+
 
 		//post.Created = strfmt.DateTime(timeTmp.UTC()).String()
 
@@ -359,7 +386,9 @@ func (r *ThreadRepository) GetPostsByParentTree(id int, since int64, desc bool, 
 	posts := make([]post_models.ResponsePost, 0, 0)
 	for rows.Next() {
 		post := post_models.ResponsePost{}
-		timeTmp := &time.Time{}
+		timeTmp := time.Time{}
+		//timeTmp := &strfmt.DateTime{}
+
 
 		err = rows.Scan(
 			&post.Id,
@@ -369,12 +398,16 @@ func (r *ThreadRepository) GetPostsByParentTree(id int, since int64, desc bool, 
 			&post.IsEdited,
 			&post.Forum,
 			&post.Thread,
-			timeTmp)
+			&timeTmp)
 		if err != nil {
 			return nil, err
 		}
-		post.Created = timeTmp.UTC()
+		//t := strfmt.DateTime(timeTmp.UTC())
+		//post.Created = &t
+		post.Created = timeTmp.Format(time.RFC3339)
+		//post.Created = time.Time(*timeTmp).String()
 
+		//post.Created = time.Time(*timeTmp).UTC().Truncate(time.Nanosecond)
 		//post.Created = strfmt.DateTime(timeTmp.UTC()).String()
 
 		posts = append(posts, post)

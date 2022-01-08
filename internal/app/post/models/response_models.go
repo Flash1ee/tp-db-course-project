@@ -1,7 +1,6 @@
 package models
 
 import (
-	"time"
 	models_forum "tp-db-project/internal/app/forum/models"
 	models_thread "tp-db-project/internal/app/thread/models"
 	models_author "tp-db-project/internal/app/users/models"
@@ -15,7 +14,9 @@ type ResponsePost struct {
 	IsEdited bool      `json:"isEdited"`
 	Forum    string    `json:"forum"`
 	Thread   int64     `json:"thread"`
-	Created  time.Time `json:"created"`
+	//Created  time.Time `json:"created,omitempty"`
+	Created  string `json:"created"`
+
 }
 type ResponsePostDetail struct {
 	Post   *ResponsePost                 `json:"post"`
