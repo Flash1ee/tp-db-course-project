@@ -2,7 +2,7 @@ CREATE EXTENSION IF NOT EXISTS citext;
 --
 -- alter table users alter column
 --     nickname set data type citext COLLATE "ucs_basic";
-CREATE TABLE IF NOT EXISTS users
+CREATE UNLOGGED TABLE IF NOT EXISTS users
 (
     id       bigserial,
     nickname citext COLLATE "ucs_basic" NOT NULL UNIQUE PRIMARY KEY,
@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users
     about    text,
     email    citext NOT NULL UNIQUE
 );
-CREATE TABLE IF NOT EXISTS forum
+CREATE UNLOGGED TABLE IF NOT EXISTS forum
 (
     id             bigserial,
     title          text   NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS forum
     posts          bigint DEFAULT 0,
     threads        int    DEFAULT 0
 );
-CREATE TABLE IF NOT EXISTS thread
+CREATE UNLOGGED TABLE IF NOT EXISTS thread
 (
     id      bigserial PRIMARY KEY NOT NULL,
     title   text                  NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS thread
     slug    citext,
     created timestamp with time zone DEFAULT now()
 );
-CREATE TABLE IF NOT EXISTS post
+CREATE UNLOGGED TABLE IF NOT EXISTS post
 (
     id        bigserial PRIMARY KEY NOT NULL UNIQUE,
     parent    int                      DEFAULT 0,
@@ -43,13 +43,13 @@ CREATE TABLE IF NOT EXISTS post
     path      bigint[]                 DEFAULT ARRAY []::INTEGER[]
 );
 
-CREATE TABLE IF NOT EXISTS vote
+CREATE UNLOGGED TABLE IF NOT EXISTS vote
 (
     nickname  citext NOT NULL REFERENCES users (nickname),
     thread_id int    NOT NULL REFERENCES thread (id),
     voice     int    NOT NULL
 );
-CREATE TABLE IF NOT EXISTS user_forum
+CREATE UNLOGGED TABLE IF NOT EXISTS user_forum
 (
     nickname citext NOT NULL REFERENCES users (nickname),
     forum    citext NOT NULL REFERENCES forum (slug)
@@ -182,3 +182,9 @@ create index if not exists th_slug_hash on thread using hash (slug);
 create index if not exists th_user on thread using hash (author);
 create index if not exists th_created on thread (created);
 create index if not exists th_forum_created on thread (forum, created);
+-----------
+create index if not exists forum_user on forum using hash (users_nickname);
+create index if not exists f_u_nickname on user_forum using hash (nickname);
+create index if not exists users_to_forums_forum on user_forum (forum);
+VACUUM;
+VACUUM ANALYSE;

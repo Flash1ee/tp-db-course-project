@@ -25,13 +25,13 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	logger, closeResource := utilits.NewLogger(config)
-	defer func(closer func() error, log *logrus.Logger) {
-		err := closer()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}(closeResource, logger)
+	logger := utilits.NewLogger(config)
+	//defer func(closer func() error, log *logrus.Logger) {
+	//	err := closer()
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
+	//}(logger)
 
 	db, closeDbResource := utilits.NewPostgresConnection(&config.ServerRepository)
 

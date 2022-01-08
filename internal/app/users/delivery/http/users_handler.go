@@ -1,31 +1,27 @@
 package users_handler
 
 import (
-	"github.com/gorilla/context"
-	"github.com/julienschmidt/httprouter"
-	"github.com/justinas/alice"
+	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"tp-db-project/internal/app"
-	mw "tp-db-project/internal/app/middlewares"
 	"tp-db-project/internal/app/users"
 	"tp-db-project/internal/app/users/models"
 	"tp-db-project/internal/app/users/users_usecase"
 	"tp-db-project/internal/pkg/handler"
-	"tp-db-project/internal/pkg/router"
 	"tp-db-project/internal/pkg/utilits"
 )
 
 type UsersHandler struct {
-	router  *router.CustomRouter
+	router  *mux.Router
 	logger  *logrus.Logger
 	usecase users.Usecase
 	handler.HelpHandlers
 	handler.BaseHandler
 }
 
-func NewUsersHandler(router *router.CustomRouter, logger *logrus.Logger, uc users.Usecase) *UsersHandler {
+func NewUsersHandler(router *mux.Router, logger *logrus.Logger, uc users.Usecase) *UsersHandler {
 	h := &UsersHandler{
 		router:  router,
 		logger:  logger,
@@ -36,22 +32,29 @@ func NewUsersHandler(router *router.CustomRouter, logger *logrus.Logger, uc user
 			},
 		},
 	}
-	utilitiesMiddleware := mw.NewUtilitiesMiddleware(h.logger)
-	middlewares := alice.New(context.ClearHandler, utilitiesMiddleware.UpgradeLogger, utilitiesMiddleware.CheckPanic)
-	h.router.Get("/api/user/:nickname/profile", middlewares.ThenFunc(h.GetProfileHandler))
-	h.router.Post("/api/user/:nickname/profile", middlewares.ThenFunc(h.UpdateProfileHandler))
-	h.router.Post("/api/user/:nickname/create", middlewares.ThenFunc(h.CreateUserHandler))
+	//h.router.Get("/api/user/:nickname/profile", h.GetProfileHandler)
+	//h.router.Post("/api/user/:nickname/profile", h.UpdateProfileHandler)
+	//h.router.Post("/api/user/:nickname/create", h.CreateUserHandler)
+	h.router.HandleFunc("/api/user/{nickname}/profile", h.GetProfileHandler).Methods("GET")
+	h.router.HandleFunc("/api/user/{nickname}/profile", h.UpdateProfileHandler).Methods("POST")
+	h.router.HandleFunc("/api/user/{nickname}/create", h.CreateUserHandler).Methods("POST")
 
 	return h
 }
 func (h *UsersHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	req := &models.User{}
-	params, ok := r.Context().Value("params").(httprouter.Params)
-	if !ok || len(params) > 1 || params.ByName("nickname") == "" {
+	vars := mux.Vars(r)
+	nickname, ok := vars["nickname"]
+	//params, ok := r.Context().Value("params").(httprouter.Params)
+	//if !ok || len(params) > 1 || params.ByName("nickname") == "" {
+	//	h.Error(w, r, http.StatusBadRequest, InvalidArgument)
+	//	return
+	//}
+	if !ok || nickname == "" {
 		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
 		return
 	}
-	nickname := params.ByName("nickname")
+	//nickname := params.ByName("nickname")
 
 	if err := h.GetRequestBody(w, r, req); err != nil {
 		h.Error(w, r, http.StatusBadRequest, InvalidBody)
@@ -75,12 +78,18 @@ func (h *UsersHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *UsersHandler) GetProfileHandler(w http.ResponseWriter, r *http.Request) {
-	params, ok := r.Context().Value("params").(httprouter.Params)
-	if !ok || len(params) > 1 || params.ByName("nickname") == "" {
+	vars := mux.Vars(r)
+	nickname, ok := vars["nickname"]
+	if !ok  || nickname == "" {
 		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
 		return
 	}
-	nickname := params.ByName("nickname")
+	//params, ok := r.Context().Value("params").(httprouter.Params)
+	//if !ok || len(params) > 1 || params.ByName("nickname") == "" {
+	//	h.Error(w, r, http.StatusBadRequest, InvalidArgument)
+	//	return
+	//}
+	//nickname := params.ByName("nickname")
 
 	user, err := h.usecase.GetUserByNickname(nickname)
 	if err != nil {
@@ -91,12 +100,18 @@ func (h *UsersHandler) GetProfileHandler(w http.ResponseWriter, r *http.Request)
 }
 func (h *UsersHandler) UpdateProfileHandler(w http.ResponseWriter, r *http.Request) {
 	req := &models.User{}
-	params, ok := r.Context().Value("params").(httprouter.Params)
-	if !ok || len(params) > 1 || params.ByName("nickname") == "" {
+	vars := mux.Vars(r)
+	nickname, ok := vars["nickname"]
+	if !ok || nickname == "" {
 		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
 		return
 	}
-	nickname := params.ByName("nickname")
+	//params, ok := r.Context().Value("params").(httprouter.Params)
+	//if !ok || len(params) > 1 || params.ByName("nickname") == "" {
+	//	h.Error(w, r, http.StatusBadRequest, InvalidArgument)
+	//	return
+	//}
+	//nickname := params.ByName("nickname")
 
 	if err := h.GetRequestBody(w, r, req); err != nil {
 		h.Error(w, r, http.StatusBadRequest, InvalidBody)

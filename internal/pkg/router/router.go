@@ -9,7 +9,7 @@ import (
 )
 
 type Router interface {
-	HandleFunc(url string, h http.Handler, method string)
+	HandleFunc(url string, h http.HandlerFunc, method string)
 	ServeHTTP(w http.ResponseWriter, r *http.Request)
 }
 
@@ -21,8 +21,8 @@ type MuxCustomRouter struct {
 func NewMuxRouter(logger *logrus.Logger) *MuxCustomRouter {
 	return &MuxCustomRouter{router: mux.NewRouter(), logger: logger}
 }
-func (r *MuxCustomRouter) HandleFunc(url string, h http.Handler, method string) {
-	r.router.Handle(url, h).Methods(method)
+func (r *MuxCustomRouter) HandleFunc(url string, h http.HandlerFunc, method string) {
+	r.router.HandleFunc(url, h).Methods(method)
 }
 func (rout *MuxCustomRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rout.logger.Info(r)
@@ -43,10 +43,10 @@ func wrapHandler(h http.Handler) httprouter.Handle {
 		h.ServeHTTP(w, r)
 	}
 }
-func (r *CustomRouter) Get(path string, handler http.Handler) {
+func (r *CustomRouter) Get(path string, handler http.HandlerFunc) {
 	r.router.GET(path, wrapHandler(handler))
 }
-func (r *CustomRouter) Post(path string, handler http.Handler) {
+func (r *CustomRouter) Post(path string, handler http.HandlerFunc) {
 	r.router.POST(path, wrapHandler(handler))
 }
 func (r *CustomRouter) HandleFunc(url string, f http.Handler, method string) {

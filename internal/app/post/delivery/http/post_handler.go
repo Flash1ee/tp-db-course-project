@@ -1,31 +1,27 @@
 package post_handler
 
 import (
-	"github.com/gorilla/context"
-	"github.com/julienschmidt/httprouter"
-	"github.com/justinas/alice"
+	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
 	"strings"
-	mw "tp-db-project/internal/app/middlewares"
 	"tp-db-project/internal/app/post"
 	models2 "tp-db-project/internal/app/post/models"
 	post_repository "tp-db-project/internal/app/post/repository"
 	"tp-db-project/internal/pkg/handler"
-	"tp-db-project/internal/pkg/router"
 	"tp-db-project/internal/pkg/utilits"
 )
 
 type PostHandler struct {
-	router  *router.CustomRouter
+	router  *mux.Router
 	logger  *logrus.Logger
 	usecase post.Usecase
 	handler.HelpHandlers
 	handler.BaseHandler
 }
 
-func NewPostHandler(router *router.CustomRouter, logger *logrus.Logger, uc post.Usecase) *PostHandler {
+func NewPostHandler(router *mux.Router, logger *logrus.Logger, uc post.Usecase) *PostHandler {
 	h := &PostHandler{
 		router:  router,
 		logger:  logger,
@@ -36,22 +32,29 @@ func NewPostHandler(router *router.CustomRouter, logger *logrus.Logger, uc post.
 			},
 		},
 	}
-	utilitiesMiddleware := mw.NewUtilitiesMiddleware(h.logger)
-	middlewares := alice.New(context.ClearHandler, utilitiesMiddleware.UpgradeLogger, utilitiesMiddleware.CheckPanic)
-	h.router.Get("/api/post/:id/details", middlewares.ThenFunc(h.GetPost))
-	h.router.Post("/api/post/:id/details", middlewares.ThenFunc(h.UpdatePost))
+	h.router.HandleFunc("/api/post/{id}/details", h.GetPost).Methods("GET")
+	h.router.HandleFunc("/api/post/{id}/details", h.UpdatePost).Methods("POST")
+	//h.router.Get("/api/post/:id/details", h.GetPost)
+	//h.router.Post("/api/post/:id/details", h.UpdatePost)
 
 	return h
 }
 
 func (h *PostHandler) GetPost(w http.ResponseWriter, r *http.Request) {
-	params, ok := r.Context().Value("params").(httprouter.Params)
-	if !ok || len(params) > 1 || params.ByName("id") == "" {
+	vars := mux.Vars(r)
+	id, ok := vars["id"]
+	if !ok || id == "" {
 		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
 		return
 	}
+	//params, ok := r.Context().Value("params").(httprouter.Params)
+	//if !ok || len(params) > 1 || params.ByName("id") == "" {
+	//	h.Error(w, r, http.StatusBadRequest, InvalidArgument)
+	//	return
+	//}
 
-	idInt, err := strconv.Atoi(params.ByName("id"))
+	//idInt, err := strconv.Atoi(params.ByName("id"))
+	idInt, err := strconv.Atoi(id)
 	if err != nil {
 		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
 		return
@@ -77,12 +80,19 @@ func (h *PostHandler) GetPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
-	params, ok := r.Context().Value("params").(httprouter.Params)
-	if !ok || len(params) > 1 || params.ByName("id") == "" {
+	vars := mux.Vars(r)
+	id, ok := vars["id"]
+	if !ok || id == "" {
 		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
 		return
 	}
-	idInt, err := strconv.Atoi(params.ByName("id"))
+	//params, ok := r.Context().Value("params").(httprouter.Params)
+	//if !ok || len(params) > 1 || params.ByName("id") == "" {
+	//	h.Error(w, r, http.StatusBadRequest, InvalidArgument)
+	//	return
+	//}
+	//idInt, err := strconv.Atoi(params.ByName("id"))
+	idInt, err := strconv.Atoi(id)
 	if err != nil {
 		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
 		return

@@ -2,7 +2,6 @@ package post_postgresql
 
 import (
 	"context"
-	"fmt"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"strings"
@@ -68,7 +67,7 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 			//post.Created = time.Time(*postTime).String()
 			post.Created = postTime.Format(time.RFC3339)
 			//fmt.Println("POST TIME", post.Created)
-			fmt.Println(post.Created)
+			//fmt.Println(post.Created)
 			//post.Created = post.Created.Format(time.RFC3339)
 			res.Post = post
 		case "user":

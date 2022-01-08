@@ -1,34 +1,30 @@
 package thread_handler
 
 import (
-	"github.com/gorilla/context"
-	"github.com/julienschmidt/httprouter"
-	"github.com/justinas/alice"
+	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
 	"tp-db-project/internal/app"
-	mw "tp-db-project/internal/app/middlewares"
 	models3 "tp-db-project/internal/app/models"
 	"tp-db-project/internal/app/thread"
 	"tp-db-project/internal/app/thread/models"
 	thread_usecase "tp-db-project/internal/app/thread/usecase"
 	models2 "tp-db-project/internal/app/vote/models"
 	"tp-db-project/internal/pkg/handler"
-	"tp-db-project/internal/pkg/router"
 	"tp-db-project/internal/pkg/utilits"
 )
 
 type ThreadHandler struct {
-	router  *router.CustomRouter
+	router  *mux.Router
 	logger  *logrus.Logger
 	usecase thread.Usecase
 	handler.HelpHandlers
 	handler.BaseHandler
 }
 
-func NewThreadHandler(router *router.CustomRouter, logger *logrus.Logger, uc thread.Usecase) *ThreadHandler {
+func NewThreadHandler(router *mux.Router, logger *logrus.Logger, uc thread.Usecase) *ThreadHandler {
 	h := &ThreadHandler{
 		router:  router,
 		logger:  logger,
@@ -39,23 +35,34 @@ func NewThreadHandler(router *router.CustomRouter, logger *logrus.Logger, uc thr
 			},
 		},
 	}
-	utilitiesMiddleware := mw.NewUtilitiesMiddleware(h.logger)
-	middlewares := alice.New(context.ClearHandler, utilitiesMiddleware.UpgradeLogger, utilitiesMiddleware.CheckPanic)
-	h.router.Get("/api/thread/:slug_or_id/details", middlewares.ThenFunc(h.ThreadInfo))
-	h.router.Get("/api/thread/:slug_or_id/posts", middlewares.ThenFunc(h.ThreadPosts))
+	h.router.HandleFunc("/api/thread/{slug_or_id}/details", h.ThreadInfo).Methods("GET")
+	h.router.HandleFunc("/api/thread/{slug_or_id}/posts", h.ThreadPosts).Methods("GET")
 
-	h.router.Post("/api/thread/:slug_or_id/details", middlewares.ThenFunc(h.UpdateThread))
-	h.router.Post("/api/thread/:slug_or_id/vote", middlewares.ThenFunc(h.VoteThread))
-	h.router.Post("/api/thread/:slug_or_id/create", middlewares.ThenFunc(h.CreatePosts))
+	h.router.HandleFunc("/api/thread/{slug_or_id}/details", h.UpdateThread).Methods("POST")
+	h.router.HandleFunc("/api/thread/{slug_or_id}/vote", h.VoteThread).Methods("POST")
+	h.router.HandleFunc("/api/thread/{slug_or_id}/create", h.CreatePosts).Methods("POST")
+
+	//h.router.Get("/api/thread/:slug_or_id/details", h.ThreadInfo)
+	//h.router.Get("/api/thread/:slug_or_id/posts", h.ThreadPosts)
+	//
+	//h.router.Post("/api/thread/:slug_or_id/details", h.UpdateThread)
+	//h.router.Post("/api/thread/:slug_or_id/vote", h.VoteThread)
+	//h.router.Post("/api/thread/:slug_or_id/create", h.CreatePosts)
 	return h
 }
 func (h *ThreadHandler) CreatePosts(w http.ResponseWriter, r *http.Request) {
-	params, ok := r.Context().Value("params").(httprouter.Params)
-	if !ok || len(params) > 1 || params.ByName("slug_or_id") == "" {
+	vars := mux.Vars(r)
+	slugOrID, ok := vars["slug_or_id"]
+	if !ok || slugOrID == "" || len(vars) > 1 {
 		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
 		return
 	}
-	slugOrID := params.ByName("slug_or_id")
+	//params, ok := r.Context().Value("params").(httprouter.Params)
+	//if !ok || len(params) > 1 || params.ByName("slug_or_id") == "" {
+	//	h.Error(w, r, http.StatusBadRequest, InvalidArgument)
+	//	return
+	//}
+	//slugOrID := params.ByName("slug_or_id")
 	var posts []*models.RequestNewPost
 
 	if err := h.GetRequestBody(w, r, &posts); err != nil {
@@ -79,12 +86,18 @@ func (h *ThreadHandler) CreatePosts(w http.ResponseWriter, r *http.Request) {
 	h.Respond(w, r, http.StatusCreated, res)
 }
 func (h *ThreadHandler) ThreadInfo(w http.ResponseWriter, r *http.Request) {
-	params, ok := r.Context().Value("params").(httprouter.Params)
-	if !ok || len(params) > 1 || params.ByName("slug_or_id") == "" {
+	vars := mux.Vars(r)
+	slugOrID, ok := vars["slug_or_id"]
+	if !ok || slugOrID == "" || len(vars) > 1 {
 		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
 		return
 	}
-	slugOrID := params.ByName("slug_or_id")
+	//params, ok := r.Context().Value("params").(httprouter.Params)
+	//if !ok || len(params) > 1 || params.ByName("slug_or_id") == "" {
+	//	h.Error(w, r, http.StatusBadRequest, InvalidArgument)
+	//	return
+	//}
+	//slugOrID := params.ByName("slug_or_id")
 	res, err := h.usecase.GetThreadInfo(slugOrID)
 	if err != nil {
 		h.UsecaseError(w, r, err, CodeByErrorGet)
@@ -94,13 +107,19 @@ func (h *ThreadHandler) ThreadInfo(w http.ResponseWriter, r *http.Request) {
 
 }
 func (h *ThreadHandler) ThreadPosts(w http.ResponseWriter, r *http.Request) {
-	params, ok := r.Context().Value("params").(httprouter.Params)
-	if !ok || len(params) > 1 || params.ByName("slug_or_id") == "" {
+	vars := mux.Vars(r)
+	slugOrID, ok := vars["slug_or_id"]
+	if !ok || slugOrID == "" || len(vars) > 1 {
 		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
 		return
 	}
+	//params, ok := r.Context().Value("params").(httprouter.Params)
+	//if !ok || len(params) > 1 || params.ByName("slug_or_id") == "" {
+	//	h.Error(w, r, http.StatusBadRequest, InvalidArgument)
+	//	return
+	//}
 	var err error
-	slugOrID := params.ByName("slug_or_id")
+	//slugOrID := params.ByName("slug_or_id")
 	limit := r.URL.Query().Get("limit")
 	since := r.URL.Query().Get("since")
 	sort := r.URL.Query().Get("sort")
@@ -156,12 +175,18 @@ func (h *ThreadHandler) ThreadPosts(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ThreadHandler) UpdateThread(w http.ResponseWriter, r *http.Request) {
-	params, ok := r.Context().Value("params").(httprouter.Params)
-	if !ok || len(params) > 1 || params.ByName("slug_or_id") == "" {
+	vars := mux.Vars(r)
+	slugOrID, ok := vars["slug_or_id"]
+	if !ok || slugOrID == "" || len(vars) > 1 {
 		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
 		return
 	}
-	slugOrID := params.ByName("slug_or_id")
+	//params, ok := r.Context().Value("params").(httprouter.Params)
+	//if !ok || len(params) > 1 || params.ByName("slug_or_id") == "" {
+	//	h.Error(w, r, http.StatusBadRequest, InvalidArgument)
+	//	return
+	//}
+	//slugOrID := params.ByName("slug_or_id")
 	req := &models.RequestUpdateThread{}
 	if err := h.GetRequestBody(w, r, req); err != nil {
 		h.Error(w, r, http.StatusBadRequest, InvalidBody)
@@ -175,12 +200,18 @@ func (h *ThreadHandler) UpdateThread(w http.ResponseWriter, r *http.Request) {
 	h.Respond(w, r, http.StatusOK, *res)
 }
 func (h *ThreadHandler) VoteThread(w http.ResponseWriter, r *http.Request) {
-	params, ok := r.Context().Value("params").(httprouter.Params)
-	if !ok || len(params) > 1 || params.ByName("slug_or_id") == "" {
+	vars := mux.Vars(r)
+	slugOrID, ok := vars["slug_or_id"]
+	if !ok || slugOrID == "" || len(vars) > 1 {
 		h.Error(w, r, http.StatusBadRequest, InvalidArgument)
 		return
 	}
-	slugOrID := params.ByName("slug_or_id")
+	//params, ok := r.Context().Value("params").(httprouter.Params)
+	//if !ok || len(params) > 1 || params.ByName("slug_or_id") == "" {
+	//	h.Error(w, r, http.StatusBadRequest, InvalidArgument)
+	//	return
+	//}
+	//slugOrID := params.ByName("slug_or_id")
 	req := &models2.RequestVoteUpdate{}
 	if err := h.GetRequestBody(w, r, req); err != nil {
 		h.Error(w, r, http.StatusBadRequest, InvalidBody)

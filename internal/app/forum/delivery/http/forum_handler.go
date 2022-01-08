@@ -1,9 +1,7 @@
 package forum_handler
 
 import (
-	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
-	"github.com/justinas/alice"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
@@ -11,10 +9,8 @@ import (
 	models2 "tp-db-project/internal/app/forum/delivery/models"
 	models_forum "tp-db-project/internal/app/forum/models"
 	forum_usecase "tp-db-project/internal/app/forum/usecase"
-	mw "tp-db-project/internal/app/middlewares"
 	"tp-db-project/internal/app/models"
 	"tp-db-project/internal/pkg/handler"
-	"tp-db-project/internal/pkg/router"
 	"tp-db-project/internal/pkg/utilits"
 )
 
@@ -23,14 +19,14 @@ const (
 )
 
 type ForumHandler struct {
-	router  router.Router
+	router  *mux.Router
 	logger  *logrus.Logger
 	usecase forum.Usecase
 	handler.HelpHandlers
 	handler.BaseHandler
 }
 
-func NewForumHandler(router router.Router, logger *logrus.Logger, uc forum.Usecase) *ForumHandler {
+func NewForumHandler(router *mux.Router, logger *logrus.Logger, uc forum.Usecase) *ForumHandler {
 	h := &ForumHandler{
 		router:  router,
 		logger:  logger,
@@ -41,8 +37,6 @@ func NewForumHandler(router router.Router, logger *logrus.Logger, uc forum.Useca
 			},
 		},
 	}
-	utilitiesMiddleware := mw.NewUtilitiesMiddleware(h.logger)
-	middlewares := alice.New(context.ClearHandler, utilitiesMiddleware.UpgradeLogger, utilitiesMiddleware.CheckPanic)
 	//h.router.Get("/forum/:slug/details", middlewares.ThenFunc(h.GetForumInfo))
 	//h.router.Get("/forum/:slug/users", middlewares.ThenFunc(h.ForumUsers))
 	//h.router.Get("/forum/:slug/threads", middlewares.ThenFunc(h.ForumThreads))
@@ -50,11 +44,11 @@ func NewForumHandler(router router.Router, logger *logrus.Logger, uc forum.Useca
 	//h.router.Post("/forum/create", middlewares.ThenFunc(h.CreateForum))
 	//h.router.Post("/forum/:slug/create", middlewares.ThenFunc(h.CreateForumThreads))
 
-	h.router.HandleFunc("/api/forum/{slug}/details", middlewares.ThenFunc(h.GetForumInfo), "GET")
-	h.router.HandleFunc("/api/forum/{slug}/users", middlewares.ThenFunc(h.ForumUsers), "GET")
-	h.router.HandleFunc("/api/forum/{slug}/threads", middlewares.ThenFunc(h.ForumThreads), "GET")
-	h.router.HandleFunc("/api/forum/create", middlewares.ThenFunc(h.CreateForum), "POST")
-	h.router.HandleFunc("/api/forum/{slug}/create", middlewares.ThenFunc(h.CreateForumThreads), "POST")
+	h.router.HandleFunc("/api/forum/{slug}/details", h.GetForumInfo).Methods("GET")
+	h.router.HandleFunc("/api/forum/{slug}/users", h.ForumUsers).Methods("GET")
+	h.router.HandleFunc("/api/forum/{slug}/threads", h.ForumThreads).Methods("GET")
+	h.router.HandleFunc("/api/forum/create", h.CreateForum).Methods("POST")
+	h.router.HandleFunc("/api/forum/{slug}/create", h.CreateForumThreads).Methods("POST")
 
 	return h
 }

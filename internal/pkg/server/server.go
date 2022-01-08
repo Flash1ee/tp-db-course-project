@@ -3,8 +3,11 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"net/http/pprof"
+	_ "net/http/pprof"
 	"tp-db-project/configs"
 	forum_handler "tp-db-project/internal/app/forum/delivery/http"
 	"tp-db-project/internal/app/forum/repository/postgresql"
@@ -23,7 +26,6 @@ import (
 	"tp-db-project/internal/app/users/users_usecase"
 	vote_postgresql "tp-db-project/internal/app/vote/repository/postgresql"
 	"tp-db-project/internal/pkg/handler"
-	http_router "tp-db-project/internal/pkg/router"
 	"tp-db-project/internal/pkg/utilits"
 )
 
@@ -54,9 +56,9 @@ func (s *Server) Start() error {
 		return err
 	}
 
-	router := http_router.NewRouter(s.logger)
-	routerForum := http_router.NewMuxRouter(s.logger)
-
+	//router := http_router.NewRouter(s.logger)
+	//routerForum := http_router.NewMuxRouter(s.logger)
+	//
 	usersRepo := users_postgresql.NewUsersRepository(s.connections.SqlConnection)
 	forumRepo := forum_postgresql.NewForumRepository(s.connections.SqlConnection)
 	threadRepo := thread_postgresql.NewThreadRepository(s.connections.SqlConnection)
@@ -69,20 +71,28 @@ func (s *Server) Start() error {
 	forumUsecase := forum_usecase.NewForumUsecase(forumRepo, usersRepo, threadRepo)
 	serviceUsecase := service_usecase.NewServiceUsecase(serviceRepo)
 	threadUsecase := thread_usecase.NewThreadUsecase(threadRepo, voteRepo, postRepo, usersRepo)
+	muxRouter := mux.NewRouter()
 
-	_ = users_handler.NewUsersHandler(router, s.logger, userUsecase)
-	_ = post_handler.NewPostHandler(router, s.logger, postUsecase)
-	_ = forum_handler.NewForumHandler(routerForum, s.logger, forumUsecase)
-	_ = service_handler.NewServiceHandler(router, s.logger, serviceUsecase)
-	_ = thread_handler.NewThreadHandler(router, s.logger, threadUsecase)
+	_ = users_handler.NewUsersHandler(muxRouter, s.logger, userUsecase)
+	_ = post_handler.NewPostHandler(muxRouter, s.logger, postUsecase)
+	_ = forum_handler.NewForumHandler(muxRouter, s.logger, forumUsecase)
+	_ = service_handler.NewServiceHandler(muxRouter, s.logger, serviceUsecase)
+	_ = thread_handler.NewThreadHandler(muxRouter, s.logger, threadUsecase)
 
 	s.logger.Info("Server start")
-	server := http.NewServeMux()
-	server.Handle("/api/forum/", routerForum)
-	server.Handle("/api/thread/", router)
-	server.Handle("/api/service/", router)
-	server.Handle("/api/user/", router)
-	server.Handle("/api/post/", router)
+	//server := http.NewServeMux()
+	//server.Handle("/api/forum/", routerForum)
+	//server.Handle("/api/thread/", router)
+	//server.Handle("/api/service/", router)
+	//server.Handle("/api/user/", router)
+	//server.Handle("/api/post/", router)
 
-	return http.ListenAndServe(s.config.BindAddr, server)
+	muxRouter.HandleFunc("/debug/pprof/", pprof.Index).Methods("GET")
+	muxRouter.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline).Methods("GET")
+	muxRouter.HandleFunc("/debug/pprof/profile", pprof.Profile).Methods("GET")
+	muxRouter.HandleFunc("/debug/pprof/symbol", pprof.Symbol).Methods("GET")
+	muxRouter.HandleFunc("/debug/pprof/trace", pprof.Trace).Methods("GET")
+
+	http.Handle("/", muxRouter)
+	return http.ListenAndServe(s.config.BindAddr, muxRouter)
 }

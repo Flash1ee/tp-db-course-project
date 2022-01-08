@@ -1,26 +1,23 @@
 package service_handler
 
 import (
-	"github.com/gorilla/context"
-	"github.com/justinas/alice"
+	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	"net/http"
-	mw "tp-db-project/internal/app/middlewares"
 	"tp-db-project/internal/app/service"
 	"tp-db-project/internal/pkg/handler"
-	"tp-db-project/internal/pkg/router"
 	"tp-db-project/internal/pkg/utilits"
 )
 
 type ServiceHandler struct {
-	router  *router.CustomRouter
+	router  *mux.Router
 	logger  *logrus.Logger
 	usecase service.Usecase
 	handler.HelpHandlers
 	handler.BaseHandler
 }
 
-func NewServiceHandler(router *router.CustomRouter, logger *logrus.Logger, uc service.Usecase) *ServiceHandler {
+func NewServiceHandler(router *mux.Router, logger *logrus.Logger, uc service.Usecase) *ServiceHandler {
 	h := &ServiceHandler{
 		router:  router,
 		logger:  logger,
@@ -31,10 +28,10 @@ func NewServiceHandler(router *router.CustomRouter, logger *logrus.Logger, uc se
 			},
 		},
 	}
-	utilitiesMiddleware := mw.NewUtilitiesMiddleware(h.logger)
-	middlewares := alice.New(context.ClearHandler, utilitiesMiddleware.UpgradeLogger, utilitiesMiddleware.CheckPanic)
-	h.router.Get("/api/service/status", middlewares.ThenFunc(h.StatusHandler))
-	h.router.Post("/api/service/clear", middlewares.ThenFunc(h.ClearHandler))
+	h.router.HandleFunc("/api/service/status", h.StatusHandler).Methods("GET")
+	h.router.HandleFunc("/api/service/clear", h.ClearHandler).Methods("POST")
+	//h.router.Get("/api/service/status", h.StatusHandler)
+	//h.router.Post("/api/service/clear", h.ClearHandler)
 
 	return h
 }
