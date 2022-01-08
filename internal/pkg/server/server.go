@@ -4,7 +4,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	"net/http"
-	"net/http/pprof"
 	_ "net/http/pprof"
 	"tp-db-project/configs"
 	forum_handler "tp-db-project/internal/app/forum/delivery/http"
@@ -75,11 +74,11 @@ func (s *Server) Start() error {
 	//server.Handle("/api/user/", router)
 	//server.Handle("/api/post/", router)
 
-	muxRouter.HandleFunc("/debug/pprof/", pprof.Index).Methods("GET")
-	muxRouter.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline).Methods("GET")
-	muxRouter.HandleFunc("/debug/pprof/profile", pprof.Profile).Methods("GET")
-	muxRouter.HandleFunc("/debug/pprof/symbol", pprof.Symbol).Methods("GET")
-	muxRouter.HandleFunc("/debug/pprof/trace", pprof.Trace).Methods("GET")
+	//muxRouter.HandleFunc("/debug/pprof/", pprof.Index).Methods("GET")
+	//muxRouter.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline).Methods("GET")
+	//muxRouter.HandleFunc("/debug/pprof/profile", pprof.Profile).Methods("GET")
+	//muxRouter.HandleFunc("/debug/pprof/symbol", pprof.Symbol).Methods("GET")
+	//muxRouter.HandleFunc("/debug/pprof/trace", pprof.Trace).Methods("GET")
 
 	return http.ListenAndServe(s.config.BindAddr, muxRouter)
 }
