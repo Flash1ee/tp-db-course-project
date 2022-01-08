@@ -170,8 +170,8 @@ create index if not exists post_parent on post (thread, id, (path[1]), parent);
 create index if not exists post_sorting on post ((path[1]) desc, path, id);
 create index if not exists post_thread on post (thread);
 create index if not exists post_thread_path_id on post (thread, path, id);
-create index if not exists post_thread_path_id_hash on post using hash (forum);
-create index if not exists post_thread_path_id_hash on post using hash (author);
+create index if not exists post_forum_hash on post using hash (forum);
+create index if not exists post_author_id_hash on post using hash (author);
 
 
 -----------
@@ -180,7 +180,7 @@ create index if not exists user_all on users  (nickname, fullname, about, email)
 -----------
 create index if not exists forum_slug_hash on forum using hash (slug);
 -----------
-create unique index if not exists votes on vote (nickname, thread_id, voice);
+create unique index if not exists votes_all on vote (nickname, thread_id, voice);
 create unique index if not exists votes on vote (nickname, thread_id);
 
 -----------
