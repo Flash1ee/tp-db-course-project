@@ -2,8 +2,6 @@ FROM golang:latest AS build
 
 ADD . /app
 WORKDIR /app
-RUN mkdir -p ./logs/
-RUN chmod -R 777 ./logs/
 RUN go build ./cmd/server/main.go
 
 FROM ubuntu:20.04
@@ -37,4 +35,6 @@ COPY --from=build /app/main .
 EXPOSE 5000
 USER root
 #ENV PGPASSWORD db
+RUN mkdir -p ./logs/
+RUN chmod -R 777 ./logs/
 CMD service postgresql start && ./main
