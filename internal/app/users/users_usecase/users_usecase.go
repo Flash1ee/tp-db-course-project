@@ -1,7 +1,7 @@
 package users_usecase
 
 import (
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx"
 	"tp-db-project/internal/app"
 	"tp-db-project/internal/app/users"
 	"tp-db-project/internal/app/users/models"

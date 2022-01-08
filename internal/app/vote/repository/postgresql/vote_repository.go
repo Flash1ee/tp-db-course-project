@@ -1,9 +1,7 @@
 package vote_postgresql
 
 import (
-	"context"
-	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx"
 	"tp-db-project/internal/app/vote/models"
 	"tp-db-project/internal/app/vote/repository"
 )
@@ -15,17 +13,17 @@ const (
 )
 
 type VoteRepository struct {
-	conn *pgxpool.Pool
+	conn *pgx.ConnPool
 }
 
-func NewVoteRepository(conn *pgxpool.Pool) *VoteRepository {
+func NewVoteRepository(conn *pgx.ConnPool) *VoteRepository {
 	return &VoteRepository{
 		conn: conn,
 	}
 }
 func (r *VoteRepository) Exists(nickname string, threadID int64) (bool, error) {
 	voice := 0
-	err := r.conn.QueryRow(context.Background(), queryCheckExists, nickname, threadID).
+	err := r.conn.QueryRow(queryCheckExists, nickname, threadID).
 		Scan(&voice)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -39,7 +37,7 @@ func (r *VoteRepository) Create(vote *models.Vote) error {
 	if vote == nil {
 		return repository.InvalidArgument
 	}
-	if _, err := r.conn.Exec(context.Background(), queryCreateVote, vote.Nickname, vote.ThreadID, vote.Voice); err != nil {
+	if _, err := r.conn.Exec(queryCreateVote, vote.Nickname, vote.ThreadID, vote.Voice); err != nil {
 		return err
 	}
 	return nil
@@ -48,7 +46,7 @@ func (r *VoteRepository) Update(threadID int64, req *models.RequestVoteUpdate) (
 	if req == nil {
 		return false, repository.InvalidArgument
 	}
-	res, err := r.conn.Exec(context.Background(), queryUpdateVote, threadID, req.Nickname, req.Voice)
+	res, err := r.conn.Exec(queryUpdateVote, threadID, req.Nickname, req.Voice)
 	if err != nil {
 		return false, err
 	}

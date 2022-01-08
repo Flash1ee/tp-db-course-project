@@ -1,10 +1,8 @@
 package thread_postgresql
 
 import (
-	"context"
 	"fmt"
-	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx"
 	"time"
 	models2 "tp-db-project/internal/app/forum/models"
 	pag_models "tp-db-project/internal/app/models"
@@ -31,10 +29,10 @@ const (
 )
 
 type ThreadRepository struct {
-	conn *pgxpool.Pool
+	conn *pgx.ConnPool
 }
 
-func NewThreadRepository(conn *pgxpool.Pool) *ThreadRepository {
+func NewThreadRepository(conn *pgx.ConnPool) *ThreadRepository {
 	return &ThreadRepository{
 		conn: conn,
 	}
@@ -49,11 +47,11 @@ func (r *ThreadRepository) CreateThread(req *models2.RequestCreateThread) (*mode
 	//threadTime := &time.Time{}
 	//threadTime := &strfmt.DateTime{}
 	if req.Created == "" {
-		err = r.conn.QueryRow(context.Background(), queryCreateForumThreadNoTime, req.Title, req.Author, req.Forum, req.Message, req.Slug).
+		err = r.conn.QueryRow(queryCreateForumThreadNoTime, req.Title, req.Author, req.Forum, req.Message, req.Slug).
 			Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
 				&res.Message, &res.Votes, &res.Slug, &res.Created)
 	} else {
-		err = r.conn.QueryRow(context.Background(), queryCreateForumThreadWithTime, req.Title, req.Author, req.Forum, req.Message, req.Slug, req.Created).
+		err = r.conn.QueryRow(queryCreateForumThreadWithTime, req.Title, req.Author, req.Forum, req.Message, req.Slug, req.Created).
 			Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
 				&res.Message, &res.Votes, &res.Slug, &res.Created)
 	}
@@ -72,7 +70,7 @@ func (r *ThreadRepository) GetByID(id int64) (*models.ResponseThread, error) {
 
 
 
-	if err := r.conn.QueryRow(context.Background(), queryGetThreadById, id).
+	if err := r.conn.QueryRow(queryGetThreadById, id).
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
 			&res.Message, &res.Votes, &res.Slug, &res.Created); err != nil {
 		if err == pgx.ErrNoRows {
@@ -91,7 +89,7 @@ func (r *ThreadRepository) GetBySlug(slug string) (*models.ResponseThread, error
 
 	//threadTime := &time.Time{}
 
-	if err := r.conn.QueryRow(context.Background(), queryGetThreadBySlug, slug).
+	if err := r.conn.QueryRow(queryGetThreadBySlug, slug).
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
 			&res.Message, &res.Votes, &res.Slug, &res.Created); err != nil {
 		if err == pgx.ErrNoRows {
@@ -110,7 +108,7 @@ func (r *ThreadRepository) UpdateByID(id int64, req *models.RequestUpdateThread)
 	res := &models.ResponseThread{}
 	//threadTime := &time.Time{}
 	//threadTime := &strfmt.DateTime{}
-	if err := r.conn.QueryRow(context.Background(), queryUpdateThreadById, id, req.Title, req.Message).
+	if err := r.conn.QueryRow(queryUpdateThreadById, id, req.Title, req.Message).
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
 			&res.Message, &res.Votes, &res.Slug, &res.Created); err != nil {
 		return nil, err
@@ -127,7 +125,7 @@ func (r *ThreadRepository) UpdateBySlug(slug string, req *models.RequestUpdateTh
 	//threadTime := &time.Time{}
 	//threadTime := &strfmt.DateTime{}
 
-	if err := r.conn.QueryRow(context.Background(), queryUpdateThreadBySlug, slug, req.Title, req.Message).
+	if err := r.conn.QueryRow(queryUpdateThreadBySlug, slug, req.Title, req.Message).
 		Scan(&res.Id, &res.Title, &res.Author, &res.Forum,
 			&res.Message, &res.Votes, &res.Slug, &res.Created); err != nil {
 		return nil, err
@@ -168,7 +166,7 @@ func (r *ThreadRepository) CreatePosts(forum string, thread int64, posts []*mode
 	query = query[:len(query)-1]
 	query += " RETURNING id;"
 
-	rows, err := r.conn.Query(context.Background(), query, queryArgs...)
+	rows, err := r.conn.Query(query, queryArgs...)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +184,7 @@ func (r *ThreadRepository) CreatePosts(forum string, thread int64, posts []*mode
 func (r *ThreadRepository) GetPostsByFlats(id int, since int64, desc bool, pag *pag_models.Pagination) ([]post_models.ResponsePost, error) {
 	queryGetPostsByFlat := "SELECT id, parent, author, message, is_edited, forum, thread, created FROM post " +
 		"WHERE thread = $1 "
-	var rows pgx.Rows
+	var rows *pgx.Rows
 	var err error
 	query := queryGetPostsByFlat
 	if since != -1 && desc {
@@ -206,9 +204,9 @@ func (r *ThreadRepository) GetPostsByFlats(id int, since int64, desc bool, pag *
 	query += fmt.Sprintf(" LIMIT NULLIF(%d, 0)", pag.Limit)
 
 	if since == -1 {
-		rows, err = r.conn.Query(context.Background(), query, id)
+		rows, err = r.conn.Query(query, id)
 	} else {
-		rows, err = r.conn.Query(context.Background(), query, id, since)
+		rows, err = r.conn.Query(query, id, since)
 	}
 	if err != nil {
 		return nil, err
@@ -219,7 +217,7 @@ func (r *ThreadRepository) GetPostsByFlats(id int, since int64, desc bool, pag *
 		post := post_models.ResponsePost{}
 		//timeTmp := &strfmt.DateTime{}
 
-		timeTmp := time.Now()
+		timeTmp := time.Time{}
 
 		err = rows.Scan(&post.Id, &post.Parent,
 			&post.Author,
@@ -252,7 +250,7 @@ func (r *ThreadRepository) GetPostsByTree(id int, since int64, desc bool, pag *p
 		"WHERE thread = $1 "
 	//queryGetPostsByTreeSince := "SELECT id, parent, author, message, is_edited, forum, thread, created FROM post " +
 	//	"WHERE thread = $1 AND path < (SELECT path FROM post WHERE id = $2) "
-	var rows pgx.Rows
+	var rows *pgx.Rows
 	var err error
 	//orderBy := "ORDER BY path %s, id %s"
 	//qLimit := "LIMIT $2"
@@ -283,7 +281,7 @@ func (r *ThreadRepository) GetPostsByTree(id int, since int64, desc bool, pag *p
 	//	orderBy = fmt.Sprintf(orderBy, "ASC", "ASC")
 	//}
 	//if since == -1 {
-	rows, err = r.conn.Query(context.Background(), query, id)
+	rows, err = r.conn.Query(query, id)
 	//} else {
 	//	rows, err = r.conn.Query(context.Background(), query, id, since)
 	//}
@@ -330,7 +328,7 @@ func (r *ThreadRepository) GetPostsByParentTree(id int, since int64, desc bool, 
 	//	"WHERE thread = $1 "
 	//queryGetPostsByParentTreeSince := "SELECT id, parent, author, message, is_edited, forum, thread, created FROM post " +
 	//	"WHERE thread = $1 AND path < (SELECT path FROM post WHERE id = $2) "
-	var rows pgx.Rows
+	var rows *pgx.Rows
 	var err error
 	//orderBy := "ORDER BY path %s, id %s"
 	//qLimit := "LIMIT $2"
@@ -343,14 +341,14 @@ func (r *ThreadRepository) GetPostsByParentTree(id int, since int64, desc bool, 
 
 	if since == -1 {
 		if desc {
-			rows, err = r.conn.Query(context.Background(), `
+			rows, err = r.conn.Query(`
 					SELECT id, parent, author, message, is_edited, forum, thread, created FROM post
 					WHERE path[1] IN (SELECT id FROM post WHERE thread = $1 AND parent = 0 ORDER BY id DESC LIMIT $2)
 					ORDER BY path[1] DESC, path ASC, id ASC;`,
 				id,
 				pag.Limit)
 		} else {
-			rows, err = r.conn.Query(context.Background(), `
+			rows, err = r.conn.Query(`
 					SELECT id, parent, author, message, is_edited, forum, thread, created FROM post
 					WHERE path[1] IN (SELECT id FROM post WHERE thread = $1 AND parent = 0 ORDER BY id ASC LIMIT $2)
 					ORDER BY path ASC, id ASC;`,
@@ -359,7 +357,7 @@ func (r *ThreadRepository) GetPostsByParentTree(id int, since int64, desc bool, 
 		}
 	} else {
 		if desc {
-			rows, err = r.conn.Query(context.Background(), `
+			rows, err = r.conn.Query(`
 					SELECT id, parent, author, message, is_edited, forum, thread, created FROM post
 					WHERE path[1] IN (SELECT id FROM post WHERE thread = $1 AND parent = 0 AND path[1] <
 					(SELECT path[1] FROM post WHERE id = $2) ORDER BY id DESC LIMIT $3)
@@ -368,7 +366,7 @@ func (r *ThreadRepository) GetPostsByParentTree(id int, since int64, desc bool, 
 				since,
 				pag.Limit)
 		} else {
-			rows, err = r.conn.Query(context.Background(), `
+			rows, err = r.conn.Query(`
 					SELECT id, parent, author, message, is_edited, forum, thread, created FROM post
 					WHERE path[1] IN (SELECT id FROM post WHERE thread = $1 AND parent = 0 AND path[1] >
 					(SELECT path[1] FROM post WHERE id = $2) ORDER BY id ASC LIMIT $3) 

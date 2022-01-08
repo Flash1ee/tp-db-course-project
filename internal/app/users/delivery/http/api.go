@@ -1,7 +1,7 @@
 package users_handler
 
 import (
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"tp-db-project/internal/app/users/users_usecase"

@@ -170,21 +170,29 @@ create index if not exists post_parent on post (thread, id, (path[1]), parent);
 create index if not exists post_sorting on post ((path[1]) desc, path, id);
 create index if not exists post_thread on post (thread);
 create index if not exists post_thread_path_id on post (thread, path, id);
+create index if not exists post_thread_path_id_hash on post using hash (forum);
+create index if not exists post_thread_path_id_hash on post using hash (author);
+
+
 -----------
 create index if not exists user_nickname_hash on users using hash (nickname);
 create index if not exists user_all on users  (nickname, fullname, about, email);
 -----------
-create index if not exists forum_slug on forum using hash (slug);
+create index if not exists forum_slug_hash on forum using hash (slug);
 -----------
 create unique index if not exists votes on vote (nickname, thread_id, voice);
+create unique index if not exists votes on vote (nickname, thread_id);
+
 -----------
 create index if not exists th_slug_hash on thread using hash (slug);
-create index if not exists th_user on thread using hash (author);
+create index if not exists th_user_hash on thread using hash (author);
 create index if not exists th_created on thread (created);
 create index if not exists th_forum_created on thread (forum, created);
 -----------
-create index if not exists forum_user on forum using hash (users_nickname);
-create index if not exists f_u_nickname on user_forum using hash (nickname);
+create index if not exists forum_user_hash on forum using hash (users_nickname);
+create index if not exists f_u_nickname_hash on user_forum using hash (nickname);
 create index if not exists users_to_forums_forum on user_forum (forum);
+create index if not exists users_to_forums_nickname_hash on user_forum using hash (nickname);
+
 VACUUM;
 VACUUM ANALYSE;

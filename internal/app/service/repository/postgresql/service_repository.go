@@ -1,8 +1,7 @@
 package service_postgresql
 
 import (
-	"context"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx"
 	"tp-db-project/internal/app/service/models"
 )
 
@@ -15,24 +14,24 @@ const (
 )
 
 type ServiceRepository struct {
-	conn *pgxpool.Pool
+	conn *pgx.ConnPool
 }
 
-func NewServiceRepository(conn *pgxpool.Pool) *ServiceRepository {
+func NewServiceRepository(conn *pgx.ConnPool) *ServiceRepository {
 	return &ServiceRepository{
 		conn: conn,
 	}
 }
 
 func (r *ServiceRepository) Delete() error {
-	_, err := r.conn.Exec(context.Background(), queryDeleteAllTables)
+	_, err := r.conn.Exec(queryDeleteAllTables)
 	return err
 }
 
 func (r *ServiceRepository) Status() (*models.ResponseService, error) {
 	res := &models.ResponseService{}
 
-	if err := r.conn.QueryRow(context.Background(), queryCountForumPostThreadUsers).
+	if err := r.conn.QueryRow(queryCountForumPostThreadUsers).
 		Scan(&res.Forum, &res.Post, &res.Thread, &res.User); err != nil {
 		return nil, err
 	}

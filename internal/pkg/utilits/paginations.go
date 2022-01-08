@@ -1,8 +1,7 @@
 package utilits
 
 import (
-	"context"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx"
 	"tp-db-project/internal/app"
 	"tp-db-project/internal/app/models"
 )
@@ -11,9 +10,9 @@ const (
 	queryStat = "SELECT n_live_tup FROM pg_stat_all_tables WHERE relname = $1"
 )
 
-func AddPagination(tableName string, pag *models.Pagination, db *pgxpool.Pool) (limit int64, offset int64, err error) {
+func AddPagination(tableName string, pag *models.Pagination, db *pgx.ConnPool) (limit int64, offset int64, err error) {
 	var numberRows int64
-	if err = db.QueryRow(context.Background(), queryStat, tableName).Scan(&numberRows); err != nil {
+	if err = db.QueryRow(queryStat, tableName).Scan(&numberRows); err != nil {
 		return app.InvalidInt, app.InvalidInt, err
 	}
 

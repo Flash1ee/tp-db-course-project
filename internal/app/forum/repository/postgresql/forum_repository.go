@@ -1,10 +1,8 @@
 package forum_postgresql
 
 import (
-	"context"
 	"fmt"
-	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx"
 	"tp-db-project/internal/app/forum/models"
 	models_utilits "tp-db-project/internal/app/models"
 	models_thread "tp-db-project/internal/app/thread/models"
@@ -28,23 +26,23 @@ const (
 )
 
 type ForumRepository struct {
-	conn *pgxpool.Pool
+	conn *pgx.ConnPool
 }
 
-func NewForumRepository(conn *pgxpool.Pool) *ForumRepository {
+func NewForumRepository(conn *pgx.ConnPool) *ForumRepository {
 	return &ForumRepository{
 		conn: conn,
 	}
 }
 
 func (r *ForumRepository) Create(req *models.RequestCreateForum) error {
-	_, err := r.conn.Exec(context.Background(), queryCreate, &req.Title, &req.User, &req.Slug)
+	_, err := r.conn.Exec(queryCreate, &req.Title, &req.User, &req.Slug)
 	return err
 }
 func (r *ForumRepository) GetForumBySlag(slag string) (*models.Forum, error) {
 	forum := &models.Forum{}
 
-	res := r.conn.QueryRow(context.Background(), queryGetForumBySlug, slag).
+	res := r.conn.QueryRow(queryGetForumBySlug, slag).
 		Scan(&forum.Title, &forum.UsersNickname, &forum.Slug, &forum.Posts, &forum.Threads)
 	if res != nil {
 		return nil, res
@@ -57,7 +55,7 @@ func (r *ForumRepository) GetForumUsers(slug string, since string, desc bool, pa
 	//querySince := " AND u.nickname > $2 "
 	query := queryGetForumUsers
 	limit := pag.Limit
-	var rows pgx.Rows
+	var rows *pgx.Rows
 	var err error
 
 	if desc && since != "" {
@@ -82,7 +80,7 @@ func (r *ForumRepository) GetForumUsers(slug string, since string, desc bool, pa
 	//	rows, err = r.conn.Query(context.Background(), query, slug, since)
 	//} else {
 	//query = query + orderBy
-	rows, err = r.conn.Query(context.Background(), query, slug)
+	rows, err = r.conn.Query(query, slug)
 	//}
 	if err != nil {
 		return nil, err
@@ -106,7 +104,7 @@ func (r *ForumRepository) GetForumThreads(forumSlug string, sinceDate string, de
 	query := queryGetForumThreads
 	limit := pag.Limit
 
-	var rows pgx.Rows
+	var rows *pgx.Rows
 	var err error
 
 	if desc {
@@ -124,10 +122,10 @@ func (r *ForumRepository) GetForumThreads(forumSlug string, sinceDate string, de
 
 	if sinceDate != "" {
 		query = query + querySince + orderBy
-		rows, err = r.conn.Query(context.Background(), query, forumSlug, sinceDate)
+		rows, err = r.conn.Query(query, forumSlug, sinceDate)
 	} else {
 		query = query + orderBy
-		rows, err = r.conn.Query(context.Background(), query, forumSlug)
+		rows, err = r.conn.Query(query, forumSlug)
 	}
 	if err != nil {
 		return nil, err

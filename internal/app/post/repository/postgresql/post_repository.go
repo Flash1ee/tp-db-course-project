@@ -1,9 +1,7 @@
 package post_postgresql
 
 import (
-	"context"
-	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx"
 	"strings"
 	"time"
 	models4 "tp-db-project/internal/app/forum/models"
@@ -32,10 +30,10 @@ const (
 )
 
 type PostRepository struct {
-	conn *pgxpool.Pool
+	conn *pgx.ConnPool
 }
 
-func NewPostRepository(conn *pgxpool.Pool) *PostRepository {
+func NewPostRepository(conn *pgx.ConnPool) *PostRepository {
 	return &PostRepository{
 		conn: conn,
 	}
@@ -50,7 +48,7 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 		switch arg {
 		case "":
 			post := &models.ResponsePost{}
-			if err = r.conn.QueryRow(context.Background(), queryGetPost, id).
+			if err = r.conn.QueryRow(queryGetPost, id).
 				Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
 					&post.IsEdited, &post.Forum, &post.Thread, &postTime); err != nil {
 				if err == pgx.ErrNoRows {
@@ -73,7 +71,7 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 		case "user":
 			post := &models.ResponsePost{}
 			author := &models2.ResponseUser{}
-			if err = r.conn.QueryRow(context.Background(), queryGetPostAuthor, id).
+			if err = r.conn.QueryRow(queryGetPostAuthor, id).
 				Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
 					&post.IsEdited, &post.Forum, &post.Thread, &postTime,
 					&author.Nickname, &author.FullName, &author.About, &author.Email); err != nil {
@@ -99,7 +97,7 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 			thread := &models3.ResponseThread{}
 
 			//threadTime := &strfmt.DateTime{}
-			if err = r.conn.QueryRow(context.Background(), queryGetPostThread, id).
+			if err = r.conn.QueryRow(queryGetPostThread, id).
 				Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
 					&post.IsEdited, &post.Forum, &post.Thread, &postTime,
 					&thread.Id, &thread.Title, &thread.Author, &thread.Forum,
@@ -129,7 +127,7 @@ func (r *PostRepository) Get(id int64, related string) (*models.ResponsePostDeta
 		case "forum":
 			post := &models.ResponsePost{}
 			forum := &models4.ResponseForum{}
-			if err = r.conn.QueryRow(context.Background(), queryGetPostForum, id).
+			if err = r.conn.QueryRow(queryGetPostForum, id).
 				Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
 					&post.IsEdited, &post.Forum, &post.Thread, &postTime,
 					&forum.Title, &forum.User, &forum.Slug, &forum.Posts,
@@ -168,7 +166,7 @@ func (r *PostRepository) Update(id int64, req *models.RequestUpdateMessage) (*mo
 	//postTime := &strfmt.DateTime{}
 
 	if req.Message == "" {
-		if err := r.conn.QueryRow(context.Background(), queryUpdatePostNoEdit, id).
+		if err := r.conn.QueryRow(queryUpdatePostNoEdit, id).
 			Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
 				&post.IsEdited, &post.Forum, &post.Thread, &postTime); err != nil {
 			if err == pgx.ErrNoRows {
@@ -177,7 +175,7 @@ func (r *PostRepository) Update(id int64, req *models.RequestUpdateMessage) (*mo
 			return nil, err
 		}
 	} else {
-		if err := r.conn.QueryRow(context.Background(), queryUpdatePost, id, req.Message).
+		if err := r.conn.QueryRow(queryUpdatePost, id, req.Message).
 			Scan(&post.Id, &post.Parent, &post.Author, &post.Message,
 				&post.IsEdited, &post.Forum, &post.Thread, &postTime); err != nil {
 			if err == pgx.ErrNoRows {
@@ -201,6 +199,6 @@ func (r *PostRepository) Update(id int64, req *models.RequestUpdateMessage) (*mo
 func (r *PostRepository) CheckParentPost(parent int) (int, error) {
 	var threadID int
 
-	err := r.conn.QueryRow(context.Background(), queryCheckPostParent, parent).Scan(&threadID)
+	err := r.conn.QueryRow(queryCheckPostParent, parent).Scan(&threadID)
 	return threadID, err
 }

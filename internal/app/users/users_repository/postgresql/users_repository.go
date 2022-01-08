@@ -1,8 +1,7 @@
 package users_postgresql
 
 import (
-	"context"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx"
 	"tp-db-project/internal/app/users/models"
 )
 
@@ -20,24 +19,24 @@ const (
 )
 
 type UsersRepository struct {
-	conn *pgxpool.Pool
+	conn *pgx.ConnPool
 }
 
-func NewUsersRepository(conn *pgxpool.Pool) *UsersRepository {
+func NewUsersRepository(conn *pgx.ConnPool) *UsersRepository {
 	return &UsersRepository{
 		conn: conn,
 	}
 }
 
 func (r *UsersRepository) Create(user *models.User) error {
-	_, err := r.conn.Exec(context.Background(), queryCreateUser, user.Nickname, user.FullName, user.About, user.Email)
+	_, err := r.conn.Exec(queryCreateUser, user.Nickname, user.FullName, user.About, user.Email)
 
 	return err
 }
 
 func (r *UsersRepository) GetByNickname(nickname string) (*models.User, error) {
 	user := &models.User{}
-	err := r.conn.QueryRow(context.Background(), queryGetByNickname, nickname).
+	err := r.conn.QueryRow(queryGetByNickname, nickname).
 		Scan(&user.Nickname, &user.FullName, &user.About, &user.Email)
 	if err != nil {
 		return nil, err
@@ -47,7 +46,7 @@ func (r *UsersRepository) GetByNickname(nickname string) (*models.User, error) {
 }
 func (r *UsersRepository) Update(user *models.User) (*models.User, error) {
 	newUser := &models.User{}
-	if err := r.conn.QueryRow(context.Background(), queryUpdateUser, user.FullName, user.About, user.Email, user.Nickname).
+	if err := r.conn.QueryRow(queryUpdateUser, user.FullName, user.About, user.Email, user.Nickname).
 		Scan(&newUser.FullName, &newUser.About, &newUser.Email); err != nil {
 		return nil, err
 	}
@@ -57,7 +56,7 @@ func (r *UsersRepository) Update(user *models.User) (*models.User, error) {
 func (r *UsersRepository) GetByEmailOrNickname(nickname, email string) ([]*models.User, error) {
 	users := make([]*models.User, 0, 0)
 
-	rows, err := r.conn.Query(context.Background(), queryGetUser, nickname, email)
+	rows, err := r.conn.Query(queryGetUser, nickname, email)
 	if err != nil {
 		return nil, err
 	}

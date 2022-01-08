@@ -1,7 +1,7 @@
 package forum_handler
 
 import (
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	forum_usecase "tp-db-project/internal/app/forum/usecase"

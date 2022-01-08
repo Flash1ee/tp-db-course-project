@@ -1,7 +1,7 @@
 package thread_handler
 
 import (
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	thread_usecase "tp-db-project/internal/app/thread/usecase"

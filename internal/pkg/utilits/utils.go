@@ -1,16 +1,17 @@
 package utilits
 
 import (
-	"context"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	"io"
 	"tp-db-project/configs"
 )
-
+const (
+	MaxCountConnections = 100
+)
 type ExpectedConnections struct {
-	SqlConnection *pgxpool.Pool
+	SqlConnection *pgx.ConnPool
 	PathFiles     string
 }
 
@@ -39,11 +40,19 @@ func NewLogger(config *configs.Config) (log *logrus.Logger) {
 	return logger
 }
 
-func NewPostgresConnection(config *configs.RepositoryConnections) (db *pgxpool.Pool, closeResource func()) {
-	conn, err := pgxpool.Connect(context.Background(), config.DataBaseUrl)
+func NewPostgresConnection(config *configs.RepositoryConnections) (db *pgx.ConnPool, closeResource func()) {
+	conn, err := pgx.ParseConnectionString(config.DataBaseUrl)
 	if err != nil {
 		logrus.Fatal(err)
 	}
-
-	return conn, conn.Close
+	pool, err := pgx.NewConnPool(pgx.ConnPoolConfig{
+		ConnConfig:     conn,
+		MaxConnections: MaxCountConnections,
+		AfterConnect:   nil,
+		AcquireTimeout: 0,
+	})
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	return pool, pool.Close
 }

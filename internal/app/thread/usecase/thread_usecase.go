@@ -1,7 +1,7 @@
 package thread_usecase
 
 import (
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx"
 	"strconv"
 	"tp-db-project/internal/app"
 	pag_models "tp-db-project/internal/app/models"

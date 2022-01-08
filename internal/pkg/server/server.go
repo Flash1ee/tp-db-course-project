@@ -1,8 +1,6 @@
 package server
 
 import (
-	"context"
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -43,19 +41,9 @@ func NewServer(config *configs.Config, connections utilits.ExpectedConnections, 
 		logger:      logger,
 	}
 }
-func (s *Server) checkConnection() error {
-	if err := s.connections.SqlConnection.Ping(context.Background()); err != nil {
-		return fmt.Errorf("Can't check connection to sql with error %v ", err)
-	}
-	s.logger.Info("Success check connection to sql db")
-	return nil
-}
+
 
 func (s *Server) Start() error {
-	if err := s.checkConnection(); err != nil {
-		return err
-	}
-
 	//router := http_router.NewRouter(s.logger)
 	//routerForum := http_router.NewMuxRouter(s.logger)
 	//
@@ -93,6 +81,5 @@ func (s *Server) Start() error {
 	muxRouter.HandleFunc("/debug/pprof/symbol", pprof.Symbol).Methods("GET")
 	muxRouter.HandleFunc("/debug/pprof/trace", pprof.Trace).Methods("GET")
 
-	http.Handle("/", muxRouter)
 	return http.ListenAndServe(s.config.BindAddr, muxRouter)
 }
