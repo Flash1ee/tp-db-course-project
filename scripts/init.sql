@@ -182,10 +182,11 @@ create index if not exists post_sorting on post ((path[1]) desc, path, id);
 create index if not exists post_parent on post (thread, id, (path[1]), parent);
 create index if not exists post_forum_hash on post using hash (forum); -- не лучше не хуже
 create index if not exists post_thread_path on post (thread, path);
-create index if not exists post_thread_path_id on post (thread, path, id);
 CREATE INDEX IF NOT EXISTS post_thread_parent_path ON post (thread, parent, path);
 CREATE INDEX IF NOT EXISTS post_thread_created_id ON post (id, thread, created);
 create index if not exists post_path_parent on post ((path[1])); -- не изменилось
+create index if not exists post_p on post (parent); -- не изменилось
+
 -- create index if not exists post_author_id on post (author, id); -- дольше
 
 -- create index if not exists post_path_1_path ON post ((path[1]), path); -- хуже
