@@ -49,7 +49,6 @@ CREATE UNLOGGED TABLE IF NOT EXISTS vote
     thread_id int    NOT NULL REFERENCES thread (id),
     voice     int    NOT NULL
 );
-drop table user_forum
 CREATE UNLOGGED TABLE IF NOT EXISTS user_forum
 (
     nickname citext NOT NULL REFERENCES users (nickname),
@@ -210,31 +209,3 @@ create index if not exists th_forum_created on thread (forum, created);
 
 VACUUM;
 VACUUM ANALYSE;
-
-EXPLAIN ANALYSE
-SELECT  u.nickname, u.fullname, u.about, u.email
-from user_forum
-         LEFT JOIN users u on user_forum.nickname = u.nickname
-where user_forum.forum = '4c5ZuT0325SuR'
-ORDER BY u.nickname
-
-EXPLAIN ANALYSE
-SELECT u.nickname, u.fullname, u.about, u.email
-from users u
-         LEFT JOIN user_forum uf on u.nickname = uf.nickname
-where uf.forum = '4c5ZuT0325SuR'
-ORDER BY u.nickname
-EXPLAIN ANALYSE
-SELECT DISTINCT u.nickname, u.fullname, u.about, u.email
-from users u
-         LEFT JOIN user_forum uf on u.nickname = uf.nickname
-where uf.forum = '4c5ZuT0325SuR'
-ORDER BY u.nickname
-
-EXPLAIN ANALYSE
-SELECT u.nickname, u.fullname, u.about, u.email
-from users u
-         LEFT JOIN user_forum uf on u.nickname = uf.nickname
-where uf.forum = 'h9jZ9qPl25sYS'
-ORDER BY u.nickname
-LIMIT 15
