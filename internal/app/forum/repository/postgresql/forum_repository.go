@@ -13,6 +13,9 @@ const (
 	queryGetForumUsers = "SELECT DISTINCT u.nickname, u.fullname, u.about, u.email from user_forum " +
 		"LEFT JOIN users u on user_forum.nickname = u.nickname " +
 		"where user_forum.forum = $1 "
+	//queryGetForumUsers = "SELECT DISTINCT u.nickname, u.fullname, u.about, u.email from users u " +
+	//	"LEFT JOIN user_forum uf on u.nickname = uf.nickname " +
+	//	"where uf.forum = $1  "
 	queryCreate         = "INSERT INTO forum(title, users_nickname, slug) VALUES($1, $2, $3);"
 	queryGetForumBySlug = "SELECT title, users_nickname, slug, posts, threads FROM forum WHERE slug = $1"
 

@@ -6,9 +6,9 @@ CREATE UNLOGGED TABLE IF NOT EXISTS users
 (
     id       bigserial,
     nickname citext COLLATE "ucs_basic" NOT NULL UNIQUE PRIMARY KEY,
-    fullname text   NOT NULL,
+    fullname text                       NOT NULL,
     about    text,
-    email    citext NOT NULL UNIQUE
+    email    citext                     NOT NULL UNIQUE
 );
 CREATE UNLOGGED TABLE IF NOT EXISTS forum
 (
@@ -39,7 +39,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS post
     is_edited bool                     DEFAULT FALSE,
     forum     citext REFERENCES forum (slug),
     thread    integer REFERENCES thread (id),
-    created   timestamp with time zone  DEFAULT now(),
+    created   timestamp with time zone DEFAULT now(),
     path      bigint[]                 DEFAULT ARRAY []::INTEGER[]
 );
 
@@ -49,10 +49,13 @@ CREATE UNLOGGED TABLE IF NOT EXISTS vote
     thread_id int    NOT NULL REFERENCES thread (id),
     voice     int    NOT NULL
 );
+drop table user_forum
 CREATE UNLOGGED TABLE IF NOT EXISTS user_forum
 (
     nickname citext NOT NULL REFERENCES users (nickname),
-    forum    citext NOT NULL REFERENCES forum (slug)
+    forum    citext NOT NULL REFERENCES forum (slug),
+        constraint user_forum_key
+            unique (nickname, forum)
 );
 
 CREATE OR REPLACE FUNCTION insert_votes_into_threads()
@@ -168,10 +171,14 @@ create index if not exists forum_user_hash on forum using hash (users_nickname);
 ----------- user_forum indexes -----
 create index if not exists users_to_forums_forum_hash on user_forum using hash (forum);
 create index if not exists users_to_forums_nickname_hash on user_forum using hash (nickname);
+create index if not exists users_to_forums_nickname_sorted on user_forum using btree (nickname);
+create index if not exists users_to_forums_nickname_nickname_forum on user_forum (nickname, forum);
+
+
 ----------- users indexes ----------
 create index if not exists user_nickname_hash on users using hash (nickname);
 create index if not exists user_email_hash on users using hash (email);
-create index if not exists user_all on users  (nickname, fullname, about, email);
+create index if not exists user_all on users (nickname, fullname, about, email);
 cluster users using user_all;
 ----------- post indexes -----------
 create index if not exists post_thread_id on post (thread, id);
@@ -185,7 +192,8 @@ create index if not exists post_thread_path on post (thread, path);
 CREATE INDEX IF NOT EXISTS post_thread_parent_path ON post (thread, parent, path);
 CREATE INDEX IF NOT EXISTS post_thread_created_id ON post (id, thread, created);
 create index if not exists post_path_parent on post ((path[1])); -- не изменилось
-create index if not exists post_p on post (parent); -- не изменилось
+create index if not exists post_p on post (parent);
+-- не изменилось
 
 -- create index if not exists post_author_id on post (author, id); -- дольше
 
@@ -202,3 +210,31 @@ create index if not exists th_forum_created on thread (forum, created);
 
 VACUUM;
 VACUUM ANALYSE;
+
+EXPLAIN ANALYSE
+SELECT  u.nickname, u.fullname, u.about, u.email
+from user_forum
+         LEFT JOIN users u on user_forum.nickname = u.nickname
+where user_forum.forum = '4c5ZuT0325SuR'
+ORDER BY u.nickname
+
+EXPLAIN ANALYSE
+SELECT u.nickname, u.fullname, u.about, u.email
+from users u
+         LEFT JOIN user_forum uf on u.nickname = uf.nickname
+where uf.forum = '4c5ZuT0325SuR'
+ORDER BY u.nickname
+EXPLAIN ANALYSE
+SELECT DISTINCT u.nickname, u.fullname, u.about, u.email
+from users u
+         LEFT JOIN user_forum uf on u.nickname = uf.nickname
+where uf.forum = '4c5ZuT0325SuR'
+ORDER BY u.nickname
+
+EXPLAIN ANALYSE
+SELECT u.nickname, u.fullname, u.about, u.email
+from users u
+         LEFT JOIN user_forum uf on u.nickname = uf.nickname
+where uf.forum = 'h9jZ9qPl25sYS'
+ORDER BY u.nickname
+LIMIT 15
