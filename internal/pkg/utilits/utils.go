@@ -8,7 +8,7 @@ import (
 	"tp-db-project/configs"
 )
 const (
-	MaxCountConnections = 100
+	MaxCountConnections = 1000
 )
 type ExpectedConnections struct {
 	SqlConnection *pgx.ConnPool

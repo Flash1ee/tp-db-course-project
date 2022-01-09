@@ -79,6 +79,12 @@ func (s *Server) Start() error {
 	//muxRouter.HandleFunc("/debug/pprof/profile", pprof.Profile).Methods("GET")
 	//muxRouter.HandleFunc("/debug/pprof/symbol", pprof.Symbol).Methods("GET")
 	//muxRouter.HandleFunc("/debug/pprof/trace", pprof.Trace).Methods("GET")
-
+	//server := http.Server{
+	//	Addr:        s.config.BindAddr,
+	//	Handler:      muxRouter,
+	//	ReadTimeout:  60 * time.Second,
+	//	WriteTimeout: 60 * time.Second,
+	//}
+	//return server.ListenAndServe()
 	return http.ListenAndServe(s.config.BindAddr, muxRouter)
 }

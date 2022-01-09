@@ -162,37 +162,42 @@ CREATE TRIGGER update_users_forum
     FOR EACH ROW
 EXECUTE PROCEDURE upd_user_forum();
 
--- -
-create index if not exists post_path_parent on post ((path[1]));
-create index if not exists post_thread_thread_id on post (thread, id);
-create index if not exists post_path_id on post (id, (path[1]));
-create index if not exists post_parent on post (thread, id, (path[1]), parent);
-create index if not exists post_sorting on post ((path[1]) desc, path, id);
+----------- forum indexes -----------
+create index if not exists forum_slug_hash on forum using hash (slug);
+create index if not exists forum_user_hash on forum using hash (users_nickname);
+----------- user_forum indexes -----
+create index if not exists users_to_forums_forum_hash on user_forum using hash (forum);
+create index if not exists users_to_forums_nickname_hash on user_forum using hash (nickname);
+----------- users indexes ----------
+create index if not exists user_nickname_hash on users using hash (nickname);
+create index if not exists user_email_hash on users using hash (email);
+create index if not exists user_all on users  (nickname, fullname, about, email);
+cluster users using user_all;
+----------- post indexes -----------
+create index if not exists post_thread_id on post (thread, id);
+-- create index if not exists post_author_hash on post using hash (author); дольше
 create index if not exists post_thread on post (thread);
 create index if not exists post_thread_path_id on post (thread, path, id);
-create index if not exists post_forum_hash on post using hash (forum);
-create index if not exists post_author_id_hash on post using hash (author);
+create index if not exists post_sorting on post ((path[1]) desc, path, id);
+create index if not exists post_parent on post (thread, id, (path[1]), parent);
+create index if not exists post_forum_hash on post using hash (forum); -- не лучше не хуже
+create index if not exists post_thread_path on post (thread, path);
+create index if not exists post_thread_path_id on post (thread, path, id);
+CREATE INDEX IF NOT EXISTS post_thread_parent_path ON post (thread, parent, path);
+CREATE INDEX IF NOT EXISTS post_thread_created_id ON post (id, thread, created);
+create index if not exists post_path_parent on post ((path[1])); -- не изменилось
+-- create index if not exists post_author_id on post (author, id); -- дольше
 
-
------------
-create index if not exists user_nickname_hash on users using hash (nickname);
-create index if not exists user_all on users  (nickname, fullname, about, email);
------------
-create index if not exists forum_slug_hash on forum using hash (slug);
------------
+-- create index if not exists post_path_1_path ON post ((path[1]), path); -- хуже
+---------- vote indexes ----------
 create unique index if not exists votes_all on vote (nickname, thread_id, voice);
 create unique index if not exists votes on vote (nickname, thread_id);
-
------------
+---------- thread indexes ---------
 create index if not exists th_slug_hash on thread using hash (slug);
 create index if not exists th_user_hash on thread using hash (author);
 create index if not exists th_created on thread (created);
+create index if not exists th_forum on thread using hash (forum);
 create index if not exists th_forum_created on thread (forum, created);
------------
-create index if not exists forum_user_hash on forum using hash (users_nickname);
-create index if not exists f_u_nickname_hash on user_forum using hash (nickname);
-create index if not exists users_to_forums_forum on user_forum (forum);
-create index if not exists users_to_forums_nickname_hash on user_forum using hash (nickname);
 
 VACUUM;
 VACUUM ANALYSE;
