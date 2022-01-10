@@ -49,13 +49,6 @@ CREATE UNLOGGED TABLE IF NOT EXISTS vote
     thread_id int    NOT NULL REFERENCES thread (id),
     voice     int    NOT NULL
 );
--- CREATE UNLOGGED TABLE IF NOT EXISTS user_forum
--- (
---     nickname citext NOT NULL REFERENCES users (nickname),
---     forum    citext NOT NULL REFERENCES forum (slug),
---     constraint user_forum_key
---         unique (nickname, forum)
--- );
 CREATE UNLOGGED TABLE IF NOT EXISTS user_forum
 (
 
@@ -151,24 +144,6 @@ CREATE TRIGGER update_count_threads
     FOR EACH ROW
 EXECUTE PROCEDURE cnt_threads();
 
-
-
--- CREATE OR REPLACE FUNCTION upd_user_forum()
---     RETURNS TRIGGER AS
---
--- $$
---     DECLARE
---         nickname CITEXT;
---         fullname TEXT;
---         about    TEXT;
---         email    CITEXT;
--- BEGIN
---     INSERT INTO user_forum (nickname, forum)
---     VALUES (NEW.author, NEW.forum)
---     ON CONFLICT do nothing;
---     RETURN NEW;
--- END;
--- $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION upd_user_forum()
     RETURNS TRIGGER AS
 
@@ -209,26 +184,25 @@ create index if not exists forum_user_hash on forum using hash (users_nickname);
 ----------- user_forum indexes -----
 create index if not exists users_to_forums_forum_cmp on user_forum (forum);
 create index if not exists users_to_forums_nickname_cmp on user_forum (nickname);
-create index if not exists users_to_forum_nickname_forum on user_forum (nickname, fullname, about, email);
+create index if not exists users_to_forums_forum_nickname on user_forum (forum, nickname);
 
+create index if not exists users_to_forum_nickname_forum on user_forum (nickname, fullname, about, email);
 ----------- users indexes ----------
 create index if not exists user_nickname_compare on users (nickname);
--- create index if not exists user_all on users (nickname, fullname, about, email);
+create index if not exists user_all on users (nickname, fullname, about, email);
 ----------- post indexes -----------
--- create index if not exists post_forum_hash on post using hash (forum); -- не лучше не хуже
-create index if not exists post_path_id on post (id, (path[1]));
-create index if not exists post_thread_thread_id on post (thread, id);
-create index if not exists post_pathparent on post ((path[1]));
-create index if not exists post_thread on post using hash (thread);
-create index if not exists post_sorting on post ((path[1]) desc, path, id);
-create index if not exists post_sorting_asc on post ((path[1]) asc, path, id);
-create index if not exists post_parent on post (thread, id, (path[1]), parent);
-
-
-create index if not exists post_thread_path_id on post (thread, path, id);
-
 create index if not exists post_th_created on post (thread, created, id); --test
-
+-- create index if not exists post_pathparent on post ((path[1])); -- немного лучше
+create index if not exists post_sorting_desc on post ((path[1]) desc, path, id);
+create index if not exists post_sorting_asc on post ((path[1]) asc, path, id);
+create index if not exists post_thread on post using hash (thread);
+create index if not exists post_parent on post (thread, id, (path[1]), parent);
+-- create index if not exists post_path_id on post (id, (path[1])); -- без изменений
+CREATE INDEX IF NOT EXISTS post_thread_created_id ON post (id, thread, created);
+CREATE INDEX IF NOT EXISTS post_path_1_path ON post ((path[1]), path);
+-- create index if not exists post_thread_thread_id on post (thread, id); -- хуже
+create index if not exists post_thread_path_id on post (thread, path, id);
+-- create index if not exists post_forum_hash on post using hash (forum); -- не лучше не хуже
 -- create index if not exists post_author_hash on post using hash (author); дольше
 ---------- vote indexes ----------
 create unique index if not exists votes_all on vote (nickname, thread_id, voice);
