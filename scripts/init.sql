@@ -202,7 +202,7 @@ CREATE INDEX IF NOT EXISTS post_thread_created_id ON post (id, thread, created);
 CREATE INDEX IF NOT EXISTS post_path_1_path ON post ((path[1]), path);
 -- create index if not exists post_thread_thread_id on post (thread, id); -- хуже
 create index if not exists post_thread_path_id on post (thread, path, id);
-create index if not exists post_thread_parent_path on post (thread, parent,path);
+-- create index if not exists post_thread_parent_path on post (thread, parent,path); -- хуже
 
 -- create index if not exists post_forum_hash on post using hash (forum); -- не лучше не хуже
 -- create index if not exists post_author_hash on post using hash (author); дольше
