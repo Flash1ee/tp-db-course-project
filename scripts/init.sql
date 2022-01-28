@@ -191,17 +191,15 @@ create index if not exists users_to_forum_nickname_forum on user_forum (nickname
 create index if not exists user_nickname_compare on users (nickname);
 create index if not exists user_all on users (nickname, fullname, about, email);
 ----------- post indexes -----------
-create index if not exists post_th_created on post (thread, created, id); --test
+-- create index if not exists post_th_created on post (thread, created, id); -- сортировка в индексе не учитывается
 -- create index if not exists post_pathparent on post ((path[1])); -- немного лучше
-create index if not exists post_sorting_desc on post ((path[1]) desc, path, id);
-create index if not exists post_sorting_asc on post ((path[1]) asc, path, id);
 create index if not exists post_thread on post using hash (thread);
 create index if not exists post_parent on post (thread, id, (path[1]), parent);
 -- create index if not exists post_path_id on post (id, (path[1])); -- без изменений
-CREATE INDEX IF NOT EXISTS post_thread_created_id ON post (id, thread, created);
+-- CREATE INDEX IF NOT EXISTS post_thread_created_id ON post (id, thread, created); -- сортировка в индексе не учитывается
 CREATE INDEX IF NOT EXISTS post_path_1_path ON post ((path[1]), path);
 -- create index if not exists post_thread_thread_id on post (thread, id); -- хуже
-create index if not exists post_thread_path_id on post (thread, path, id);
+create index if not exists post_thread_path on post (thread, path);
 -- create index if not exists post_thread_parent_path on post (thread, parent,path); -- хуже
 
 -- create index if not exists post_forum_hash on post using hash (forum); -- не лучше не хуже
@@ -216,5 +214,4 @@ create index if not exists th_created on thread (created);
 create index if not exists th_forum on thread using hash (forum);
 create index if not exists th_forum_created on thread (forum, created);
 
-VACUUM;
 VACUUM ANALYSE;
