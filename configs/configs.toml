@@ -1,6 +1,6 @@
 log_level = "debug"
 log_path = "./logs/"
-bind_addr = ":5000"
+bind_addr = ":80"
 
 #[local]
 #database_url = "port=5432 user=flashie password=courseproject dbname=db_forum sslmode=disable"

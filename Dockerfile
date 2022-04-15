@@ -32,7 +32,9 @@ WORKDIR /usr/src/app
 COPY . .
 COPY --from=build /app/main .
 
-EXPOSE 5000
+EXPOSE 80
+EXPOSE 81
+
 USER root
 #ENV PGPASSWORD db
 RUN mkdir -p ./logs/
