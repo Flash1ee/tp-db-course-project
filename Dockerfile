@@ -33,7 +33,6 @@ COPY . .
 COPY --from=build /app/main .
 
 EXPOSE 80
-EXPOSE 81
 
 USER root
 #ENV PGPASSWORD db

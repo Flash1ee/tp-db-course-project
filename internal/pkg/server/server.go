@@ -87,13 +87,9 @@ func (s *Server) Start() error {
 	//	WriteTimeout: 60 * time.Second,
 	//}
 	//return server.ListenAndServe()
-	checkAliveRouter := mux.NewRouter()
-
-	checkAliveRouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	muxRouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
         fmt.Fprintf(w, "Server One")
     })
-
-	go http.ListenAndServe(":81", checkAliveRouter)
 
 
 	return http.ListenAndServe(s.config.BindAddr, muxRouter)
